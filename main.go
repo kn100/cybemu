@@ -23,10 +23,16 @@ func main() {
 		panic(err)
 	}
 	defer f.Close()
+
+	finfo, err := os.Stat("emu_rom.bin")
+	if err != nil {
+		panic(err)
+	}
+	//
 	instructions := []Inst{}
 	// Read entire file into byte array
 	// TODO: Set array to correct size using os.Stat
-	bytes := make([]byte, 10000)
+	bytes := make([]byte, finfo.Size())
 	f.Read(bytes)
 	i := 0
 	for i < len(bytes) {
