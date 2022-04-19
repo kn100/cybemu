@@ -847,8 +847,23 @@ func PrintAssy(instructions []Inst) {
 	fmt.Printf("%d instructions decoded, %d unks, %d words\n", decoded, unks, word)
 	// display percentage decoded
 	fmt.Printf("%d%% decoded\n", (decoded*100)/(decoded+unks))
-	for _, inst := range instructions {
+	nopFlag := false
+	for i, inst := range instructions {
 		if inst.Size == 2 {
+			// First time we see two nops, just print dots
+			if !nopFlag && inst.Opcode == "nop" && instructions[i+1].Opcode == "nop" {
+				nopFlag = true
+				fmt.Println("...")
+				continue
+			}
+			// Do nothing for every future pair of nops
+			if nopFlag && inst.Opcode == "nop" && instructions[i+1].Opcode == "nop" {
+				continue
+			}
+			// Once we find real code again, print out the last nop and continue as normal.
+			if nopFlag && inst.Opcode == "nop" && instructions[i+1].Opcode != "nop" {
+				nopFlag = false
+			}
 			fmt.Printf("%04X:\t%02X %02X\t%s\n", inst.Pos, inst.Bytes[0], inst.Bytes[1], inst.Opcode)
 		} else if inst.Size == 4 {
 			fmt.Printf("%04X:\t%02X %02X %02X %02X\t%s\n", inst.Pos, inst.Bytes[0], inst.Bytes[1], inst.Bytes[2], inst.Bytes[3], inst.Opcode)
