@@ -308,7 +308,7 @@ func main() {
 
 // Table 2.3 (2) - returns the instruction, and the size of the instruction (2 or 4 bytes)
 func Table232(bytes []byte) (string, int) {
-	size := 3
+	size := 2
 	AH := bytes[0] >> 4
 	AL := bytes[0] & 0x0F
 	BH := bytes[1] >> 4
@@ -662,7 +662,7 @@ func Table233(bytes []byte) (string, int) {
 		case CL == 0x2:
 			return "mulxs", size
 		default:
-			return "???word???", size
+			return "???word???", 2
 		}
 	case AH == 0x0 && AL == 0x1 && BH == 0xD && BL == 0x0 && CH == 0x5:
 		switch {
@@ -671,7 +671,7 @@ func Table233(bytes []byte) (string, int) {
 		case CL == 0x3:
 			return "divxs", size
 		default:
-			return "???word???", size
+			return "???word???", 2
 		}
 	case AH == 0x0 && AL == 0x1 && BH == 0xF && BL == 0x0 && CH == 0x6:
 		switch {
@@ -682,7 +682,7 @@ func Table233(bytes []byte) (string, int) {
 		case CL == 0x6:
 			return "and", size
 		default:
-			return "???word???", size
+			return "???word???", 2
 		}
 	// BH here is actually a register field
 	case AH == 0x7 && AL == 0xC && BL == 0x0 && CH == 0x6:
@@ -690,7 +690,7 @@ func Table233(bytes []byte) (string, int) {
 		case BH == 0x3:
 			return "btst", size
 		default:
-			return "???word???", size
+			return "???word???", 2
 		}
 	// BH here is actually a register field
 	case AH == 0x7 && AL == 0xC && BL == 0x0 && CH == 0x7:
@@ -722,7 +722,7 @@ func Table233(bytes []byte) (string, int) {
 				return "bild", size
 			}
 		default:
-			return "???word???", size
+			return "???word???", 2
 		}
 	// BH here is actually a register field
 	case AH == 0x7 && AL == 0xD && BL == 0x0 && CH == 0x6:
@@ -740,7 +740,7 @@ func Table233(bytes []byte) (string, int) {
 				return "bist", size
 			}
 		default:
-			return "???word???", size
+			return "???word???", 2
 		}
 	// BH here is actually a register field
 	case AH == 0x7 && AL == 0xD && BL == 0x0 && CH == 0x7:
@@ -752,7 +752,7 @@ func Table233(bytes []byte) (string, int) {
 		case BH == 0x2:
 			return "bclr", size
 		default:
-			return "???word???", size
+			return "???word???", 2
 		}
 	// BH and BL here are actually an absolute address
 	case AH == 0x7 && AL == 0xE && CH == 0x6:
@@ -760,7 +760,7 @@ func Table233(bytes []byte) (string, int) {
 		case CL == 0x3:
 			return "btst", size
 		default:
-			return "???word???", size
+			return "???word???", 2
 		}
 	// BH and BL here are actually an absolute address
 	case AH == 0x7 && AL == 0xE && CH == 0x7:
@@ -792,7 +792,7 @@ func Table233(bytes []byte) (string, int) {
 				return "bild", size
 			}
 		default:
-			return "???word???", size
+			return "???word???", 2
 		}
 	// BH and BL here are actually an absolute address
 	case AH == 0x7 && AL == 0xF && CH == 0x6:
@@ -810,7 +810,7 @@ func Table233(bytes []byte) (string, int) {
 				return "bist", size
 			}
 		default:
-			return "???word???", size
+			return "???word???", 2
 		}
 		// BH and BL here are actually an absolute address
 	case AH == 0x7 && AL == 0xF && CH == 0x7:
@@ -823,10 +823,10 @@ func Table233(bytes []byte) (string, int) {
 		case BH == 0x2:
 			return "bclr", size
 		default:
-			return "???word???", size
+			return "???word???", 2
 		}
 	}
-	return "???word???", size
+	return "???word???", 2
 }
 
 func PrintAssy(instructions []Inst) {
