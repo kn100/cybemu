@@ -5,12 +5,16 @@ import (
 	"os"
 )
 
+// Inst is a single instruction
 type Inst struct {
-	// Either 2, or 4
-	Pos    int
-	Size   int
+	// The position of the instruction in the file
+	Pos int
+	// Either 2, or 4 (or maybe 6, or even 8, unimplemented for now)
+	Size int
+	// The Opcode of the instruction
 	Opcode string
-	Bytes  []byte
+	// The raw bytes that make up the instruction
+	Bytes []byte
 }
 
 func main() {
