@@ -595,7 +595,7 @@ func Table233(bytes []byte) (string, int) {
 	// BH here is actually a register field
 	case AH == 0x7 && AL == 0xC && BL == 0x0 && CH == 0x6:
 		switch {
-		case BH == 0x3:
+		case CL == 0x3:
 			return "btst", size
 		default:
 			return "???word???", 2
@@ -603,27 +603,27 @@ func Table233(bytes []byte) (string, int) {
 	// BH here is actually a register field
 	case AH == 0x7 && AL == 0xC && BL == 0x0 && CH == 0x7:
 		switch {
-		case BH == 0x3:
+		case CL == 0x3:
 			return "btst", size
-		case BH == 0x4:
+		case CL == 0x4:
 			if DH&0x8 == 0 {
 				return "bor", size
 			} else {
 				return "bior", size
 			}
-		case BH == 0x5:
+		case CL == 0x5:
 			if DH&0x8 == 0 {
 				return "bxor", size
 			} else {
 				return "bixor", size
 			}
-		case BH == 0x6:
+		case CL == 0x6:
 			if DH&0x8 == 0 {
 				return "band", size
 			} else {
 				return "biand", size
 			}
-		case BH == 0x7:
+		case CL == 0x7:
 			if DH&0x8 == 0 {
 				return "bld", size
 			} else {
@@ -635,13 +635,13 @@ func Table233(bytes []byte) (string, int) {
 	// BH here is actually a register field
 	case AH == 0x7 && AL == 0xD && BL == 0x0 && CH == 0x6:
 		switch {
-		case BH == 0x0:
+		case CL == 0x0:
 			return "bset", size
-		case BH == 0x1:
+		case CL == 0x1:
 			return "bnot", size
-		case BH == 0x2:
+		case CL == 0x2:
 			return "bclr", size
-		case BH == 0x7:
+		case CL == 0x7:
 			if DH&0x8 == 0 {
 				return "bst", size
 			} else {
@@ -653,11 +653,11 @@ func Table233(bytes []byte) (string, int) {
 	// BH here is actually a register field
 	case AH == 0x7 && AL == 0xD && BL == 0x0 && CH == 0x7:
 		switch {
-		case BH == 0x0:
+		case CL == 0x0:
 			return "bset", size
-		case BH == 0x1:
+		case CL == 0x1:
 			return "bnot", size
-		case BH == 0x2:
+		case CL == 0x2:
 			return "bclr", size
 		default:
 			return "???word???", 2
@@ -673,27 +673,27 @@ func Table233(bytes []byte) (string, int) {
 	// BH and BL here are actually an absolute address
 	case AH == 0x7 && AL == 0xE && CH == 0x7:
 		switch {
-		case BH == 0x3:
+		case CL == 0x3:
 			return "btst", size
-		case BH == 0x4:
+		case CL == 0x4:
 			if DH&0x8 == 0 {
 				return "bor", size
 			} else {
 				return "bior", size
 			}
-		case BH == 0x5:
+		case CL == 0x5:
 			if DH&0x8 == 0 {
 				return "bxor", size
 			} else {
 				return "bixor", size
 			}
-		case BH == 0x6:
+		case CL == 0x6:
 			if DH&0x8 == 0 {
 				return "band", size
 			} else {
 				return "biand", size
 			}
-		case BH == 0x7:
+		case CL == 0x7:
 			if DH&0x8 == 0 {
 				return "bld", size
 			} else {
@@ -705,13 +705,13 @@ func Table233(bytes []byte) (string, int) {
 	// BH and BL here are actually an absolute address
 	case AH == 0x7 && AL == 0xF && CH == 0x6:
 		switch {
-		case BH == 0x0:
+		case CL == 0x0:
 			return "bset", size
-		case BH == 0x1:
+		case CL == 0x1:
 			return "bnot", size
-		case BH == 0x2:
+		case CL == 0x2:
 			return "bclr", size
-		case BH == 0x7:
+		case CL == 0x7:
 			if DH&0x8 == 0 {
 				return "bst", size
 			} else {
@@ -724,11 +724,11 @@ func Table233(bytes []byte) (string, int) {
 	case AH == 0x7 && AL == 0xF && CH == 0x7:
 		// 0: bset, 1: bnot, 2: bclr
 		switch {
-		case BH == 0x0:
+		case CL == 0x0:
 			return "bset", size
-		case BH == 0x1:
+		case CL == 0x1:
 			return "bnot", size
-		case BH == 0x2:
+		case CL == 0x2:
 			return "bclr", size
 		default:
 			return "???word???", 2
