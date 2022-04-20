@@ -46,194 +46,177 @@ func main() {
 			Pos:  i,
 			Size: 2,
 		}
-		switch {
-		// noop
-		case AH == 0x0 && AL == 0x0:
-			inst.Opcode = "nop"
-		case AH == 0x0 && AL == 0x1:
-			inst.Opcode, inst.Size = Table232(bytes[i : i+8])
-		case AH == 0x0 && AL == 0x2:
-			BH := bytes[i+1] >> 4
-			if BH&0x8 == 0 {
-				inst.Opcode = "stc"
-			} else {
-				inst.Opcode = "???word???"
-			}
-		case AH == 0x0 && AL == 0x3:
-			BH := bytes[i+1] >> 4
-			if BH&0x8 == 0 {
+		switch AH {
+		case 0x0:
+			switch AL {
+			case 0x0:
+				inst.Opcode = "nop"
+			case 0x1:
+				inst.Opcode, inst.Size = Table232(bytes[i : i+8])
+			case 0x2:
+				BH := bytes[i+1] >> 4
+				if BH&0x8 == 0 {
+					inst.Opcode = "stc"
+				} else {
+					inst.Opcode = "???word???"
+				}
+			case 0x3:
+				BH := bytes[i+1] >> 4
+				if BH&0x8 == 0 {
+					inst.Opcode = "ldc"
+				} else {
+					inst.Opcode = "???word???"
+				}
+			case 0x4:
+				inst.Opcode = "orc"
+			case 0x5:
+				inst.Opcode = "xorc"
+			case 0x6:
+				inst.Opcode = "andc"
+			case 0x7:
 				inst.Opcode = "ldc"
-			} else {
-				inst.Opcode = "???word???"
+			case 0x8, 0x9:
+				inst.Opcode = "add"
+			case 0xA, 0xB, 0xF:
+				inst.Opcode, inst.Size = Table232(bytes[i : i+8])
+			case 0xC, 0xD:
+				inst.Opcode = "mov"
+			case 0xE:
+				inst.Opcode = "addx"
 			}
-		case AH == 0x0 && AL == 0x4:
-			inst.Opcode = "orc"
-		case AH == 0x0 && AL == 0x5:
-			inst.Opcode = "xorc"
-		case AH == 0x0 && AL == 0x6:
-			inst.Opcode = "andc"
-		case AH == 0x0 && AL == 0x7:
-			inst.Opcode = "ldc"
-		case AH == 0x0 && AL == 0x8:
-			inst.Opcode = "add"
-		case AH == 0x0 && AL == 0x9:
-			inst.Opcode = "add"
-		case AH == 0x0 && (AL == 0xA || AL == 0xB || AL == 0xF):
-			inst.Opcode, inst.Size = Table232(bytes[i : i+8])
-		case AH == 0x0 && AL == 0xC:
+		case 0x1:
+			switch AL {
+			case 0x0, 0x1, 0x2, 0x3, 0x7, 0xA, 0xB, 0xF:
+				inst.Opcode, inst.Size = Table232(bytes[i : i+8])
+			case 0x4:
+				inst.Opcode = "or"
+			case 0x5:
+				inst.Opcode = "xor"
+			case 0x6:
+				inst.Opcode = "and"
+			case 0x8, 0x9:
+				inst.Opcode = "sub"
+			case 0xC, 0xD:
+				inst.Opcode = "cmp"
+			case 0xE:
+				inst.Opcode = "subx"
+			}
+		case 0x2, 0x3:
 			inst.Opcode = "mov"
-		case AH == 0x0 && AL == 0xD:
-			inst.Opcode = "mov"
-		case AH == 0x0 && AL == 0xE:
-			inst.Opcode = "addx"
-		case AH == 0x1 && (AL == 0x0 || AL == 0x1 || AL == 0x2 || AL == 0x3 || AL == 0x7 || AL == 0xA || AL == 0xB || AL == 0xF):
-			inst.Opcode, inst.Size = Table232(bytes[i : i+8])
-		case AH == 0x1 && AL == 0x4:
-			inst.Opcode = "or"
-		case AH == 0x1 && AL == 0x5:
-			inst.Opcode = "xor"
-		case AH == 0x1 && AL == 0x6:
-			inst.Opcode = "and"
-		case AH == 0x1 && AL == 0x8:
-			inst.Opcode = "sub"
-		case AH == 0x1 && AL == 0x9:
-			inst.Opcode = "sub"
-		case AH == 0x1 && AL == 0xC:
-			inst.Opcode = "cmp"
-		case AH == 0x1 && AL == 0xD:
-			inst.Opcode = "cmp"
-		case AH == 0x1 && AL == 0xE:
-			inst.Opcode = "subx"
-		case AH == 0x2 || AH == 0x3:
-			inst.Opcode = "mov"
-		case AH == 0x4:
+		case 0x4:
 			inst.Opcode = Branches(AL)
-		case AH == 0x5 && AL == 0x0:
-			inst.Opcode = "mulxu"
-		case AH == 0x5 && AL == 0x1:
-			inst.Opcode = "divxu"
-		case AH == 0x5 && AL == 0x2:
-			inst.Opcode = "mulxu"
-		case AH == 0x5 && AL == 0x3:
-			inst.Opcode = "divxu"
-		case AH == 0x5 && AL == 0x4:
-			inst.Opcode = "rts"
-		case AH == 0x5 && AL == 0x5:
-			inst.Opcode = "bsr"
-		case AH == 0x5 && AL == 0x6:
-			inst.Opcode = "rte"
-		case AH == 0x5 && AL == 0x7:
-			inst.Opcode = "trapa"
-		case AH == 0x5 && AL == 0x8:
-			inst.Opcode, inst.Size = Table232(bytes[i : i+8])
-		case AH == 0x5 && AL == 0x9:
-			inst.Opcode = "jmp"
-		case AH == 0x5 && AL == 0xA:
-			inst.Opcode = "jmp"
-		case AH == 0x5 && AL == 0xB:
-			inst.Opcode = "jmp"
-		case AH == 0x5 && AL == 0xC:
-			inst.Opcode = "bsr"
-		case AH == 0x5 && AL == 0xD:
-			inst.Opcode = "jsr"
-		case AH == 0x5 && AL == 0xE:
-			inst.Opcode = "jsr"
-		case AH == 0x5 && AL == 0xF:
-			inst.Opcode = "jsr"
-		case AH == 0x6 && AL == 0x0:
-			inst.Opcode = "bset"
-		case AH == 0x6 && AL == 0x1:
-			inst.Opcode = "bnot"
-		case AH == 0x6 && AL == 0x2:
-			inst.Opcode = "bclr"
-		case AH == 0x6 && AL == 0x3:
-			inst.Opcode = "btst"
-		case AH == 0x6 && AL == 0x4:
-			inst.Opcode = "or"
-		case AH == 0x6 && AL == 0x5:
-			inst.Opcode = "xor"
-		case AH == 0x6 && AL == 0x6:
-			inst.Opcode = "and"
-		case AH == 0x6 && AL == 0x7:
-			BH := bytes[i+1] >> 4
-			if BH&0x8 == 0 {
-				inst.Opcode = "bst"
-			} else {
-				inst.Opcode = "bist"
+		case 0x5:
+			switch AL {
+			case 0x0, 0x2:
+				inst.Opcode = "mulxu"
+			case 0x1, 0x3:
+				inst.Opcode = "divxu"
+			case 0x4:
+				inst.Opcode = "rts"
+			case 0x5:
+				inst.Opcode = "bsr"
+			case 0x6:
+				inst.Opcode = "rte"
+			case 0x7:
+				inst.Opcode = "trapa"
+			case 0x8:
+				inst.Opcode, inst.Size = Table232(bytes[i : i+8])
+			case 0x9, 0xA, 0xB:
+				inst.Opcode = "jmp"
+			case 0xC:
+				inst.Opcode = "bsr"
+			case 0xD, 0xE, 0xF:
+				inst.Opcode = "jsr"
 			}
-		case AH == 0x6 && AL == 0x8:
-			inst.Opcode = "mov"
-		case AH == 0x6 && AL == 0x9:
-			inst.Opcode = "mov"
-		case AH == 0x6 && AL == 0xA:
-			inst.Opcode, inst.Size = Table232(bytes[i : i+8])
-		case AH == 0x6 && AL == 0xB:
-			inst.Opcode = "mov"
-		case AH == 0x6 && AL == 0xC:
-			inst.Opcode = "mov"
-		case AH == 0x6 && AL == 0xD:
-			inst.Opcode = "mov"
-		case AH == 0x6 && AL == 0xE:
-			inst.Opcode = "mov"
-		case AH == 0x6 && AL == 0xF:
-			inst.Opcode = "mov"
-		case AH == 0x7 && AL == 0x0:
-			inst.Opcode = "bset"
-		case AH == 0x7 && AL == 0x1:
-			inst.Opcode = "bnot"
-		case AH == 0x7 && AL == 0x2:
-			inst.Opcode = "bclr"
-		case AH == 0x7 && AL == 0x3:
-			inst.Opcode = "btst"
-		case AH == 0x7 && AL == 0x4:
-			BH := bytes[i+1] >> 4
-			if BH&0x8 == 0 {
-				inst.Opcode = "bor"
-			} else {
-				inst.Opcode = "bior"
+		case 0x6:
+			switch AL {
+			case 0x0:
+				inst.Opcode = "bset"
+			case 0x1:
+				inst.Opcode = "bnot"
+			case 0x2:
+				inst.Opcode = "bclr"
+			case 0x3:
+				inst.Opcode = "btst"
+			case 0x4:
+				inst.Opcode = "or"
+			case 0x5:
+				inst.Opcode = "xor"
+			case 0x6:
+				inst.Opcode = "and"
+			case 0x7:
+				BH := bytes[i+1] >> 4
+				if BH&0x8 == 0 {
+					inst.Opcode = "bst"
+				} else {
+					inst.Opcode = "bist"
+				}
+			case 0x8, 0x9, 0xB, 0xC, 0xD, 0xE, 0xF:
+				inst.Opcode = "mov"
+			case 0xA:
+				inst.Opcode, inst.Size = Table232(bytes[i : i+8])
 			}
-		case AH == 0x7 && AL == 0x5:
-			BH := bytes[i+1] >> 4
-			if BH&0x8 == 0 {
-				inst.Opcode = "bxor"
-			} else {
-				inst.Opcode = "bixor"
+		case 0x7:
+			switch AL {
+			case 0x0:
+				inst.Opcode = "bset"
+			case 0x1:
+				inst.Opcode = "bnot"
+			case 0x2:
+				inst.Opcode = "bclr"
+			case 0x3:
+				inst.Opcode = "btst"
+			case 0x4:
+				BH := bytes[i+1] >> 4
+				if BH&0x8 == 0 {
+					inst.Opcode = "bor"
+				} else {
+					inst.Opcode = "bior"
+				}
+			case 0x5:
+				BH := bytes[i+1] >> 4
+				if BH&0x8 == 0 {
+					inst.Opcode = "bxor"
+				} else {
+					inst.Opcode = "bixor"
+				}
+			case 0x6:
+				BH := bytes[i+1] >> 4
+				if BH&0x8 == 0 {
+					inst.Opcode = "band"
+				} else {
+					inst.Opcode = "biand"
+				}
+			case 0x7:
+				BH := bytes[i+1] >> 4
+				if BH&0x8 == 0 {
+					inst.Opcode = "bld"
+				} else {
+					inst.Opcode = "bild"
+				}
+			case 0x8:
+				inst.Opcode = "mov"
+			case 0x9, 0xA, 0xC, 0xD, 0xE, 0xF:
+				inst.Opcode, inst.Size = Table232(bytes[i : i+8])
+			case 0xB:
+				inst.Opcode = "eepmov"
 			}
-		case AH == 0x7 && AL == 0x6:
-			BH := bytes[i+1] >> 4
-			if BH&0x8 == 0 {
-				inst.Opcode = "band"
-			} else {
-				inst.Opcode = "biand"
-			}
-		case AH == 0x7 && AL == 0x7:
-			BH := bytes[i+1] >> 4
-			if BH&0x8 == 0 {
-				inst.Opcode = "bld"
-			} else {
-				inst.Opcode = "bild"
-			}
-		case AH == 0x7 && AL == 0x8:
-			inst.Opcode = "mov"
-		case AH == 0x7 && (AL == 0x9 || AL == 0xA || AL == 0xC || AL == 0xD || AL == 0xE || AL == 0xF):
-			inst.Opcode, inst.Size = Table232(bytes[i : i+8])
-		case AH == 0x7 && AL == 0xB:
-			inst.Opcode = "eepmov"
-		case AH == 0x8:
+
+		case 0x8:
 			inst.Opcode = "add"
-		case AH == 0x9:
+		case 0x9:
 			inst.Opcode = "addx"
-		case AH == 0xA:
+		case 0xA:
 			inst.Opcode = "cmp"
-		case AH == 0xB:
+		case 0xB:
 			inst.Opcode = "subx"
-		case AH == 0xC:
+		case 0xC:
 			inst.Opcode = "or"
-		case AH == 0xD:
+		case 0xD:
 			inst.Opcode = "xor"
-		case AH == 0xE:
+		case 0xE:
 			inst.Opcode = "and"
-		case AH == 0xF:
+		case 0xF:
 			inst.Opcode = "mov"
 		default:
 			panic("wut")
@@ -736,7 +719,6 @@ func Table233(bytes []byte) (string, int) {
 
 func Table234(bytes []byte) (string, int) {
 	size := 6
-	// Make AH, AL, BH, BL, CH, CL, DH, DL, EH, EL, FH
 	AH := bytes[0] >> 4
 	AL := bytes[0] & 0x0F
 	BH := bytes[1] >> 4
