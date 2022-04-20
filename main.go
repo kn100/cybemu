@@ -79,9 +79,7 @@ func main() {
 			inst.Opcode = "add"
 		case AH == 0x0 && AL == 0x9:
 			inst.Opcode = "add"
-		case AH == 0x0 && AL == 0xA:
-			inst.Opcode, inst.Size = Table232(bytes[i : i+6])
-		case AH == 0x0 && AL == 0xB:
+		case AH == 0x0 && (AL == 0xA || AL == 0xB || AL == 0xF):
 			inst.Opcode, inst.Size = Table232(bytes[i : i+6])
 		case AH == 0x0 && AL == 0xC:
 			inst.Opcode = "mov"
@@ -89,15 +87,7 @@ func main() {
 			inst.Opcode = "mov"
 		case AH == 0x0 && AL == 0xE:
 			inst.Opcode = "addx"
-		case AH == 0x0 && AL == 0xF:
-			inst.Opcode, inst.Size = Table232(bytes[i : i+6])
-		case AH == 0x1 && AL == 0x0:
-			inst.Opcode, inst.Size = Table232(bytes[i : i+6])
-		case AH == 0x1 && AL == 0x1:
-			inst.Opcode, inst.Size = Table232(bytes[i : i+6])
-		case AH == 0x1 && AL == 0x2:
-			inst.Opcode, inst.Size = Table232(bytes[i : i+6])
-		case AH == 0x1 && AL == 0x3:
+		case AH == 0x1 && (AL == 0x0 || AL == 0x1 || AL == 0x2 || AL == 0x3 || AL == 0x7 || AL == 0xA || AL == 0xB || AL == 0xF):
 			inst.Opcode, inst.Size = Table232(bytes[i : i+6])
 		case AH == 0x1 && AL == 0x4:
 			inst.Opcode = "or"
@@ -105,58 +95,20 @@ func main() {
 			inst.Opcode = "xor"
 		case AH == 0x1 && AL == 0x6:
 			inst.Opcode = "and"
-		case AH == 0x1 && AL == 0x7:
-			inst.Opcode, inst.Size = Table232(bytes[i : i+6])
 		case AH == 0x1 && AL == 0x8:
 			inst.Opcode = "sub"
 		case AH == 0x1 && AL == 0x9:
 			inst.Opcode = "sub"
-		case AH == 0x1 && AL == 0xA:
-			inst.Opcode, inst.Size = Table232(bytes[i : i+6])
-		case AH == 0x1 && AL == 0xB:
-			inst.Opcode, inst.Size = Table232(bytes[i : i+6])
 		case AH == 0x1 && AL == 0xC:
 			inst.Opcode = "cmp"
 		case AH == 0x1 && AL == 0xD:
 			inst.Opcode = "cmp"
 		case AH == 0x1 && AL == 0xE:
 			inst.Opcode = "subx"
-		case AH == 0x1 && AL == 0xF:
-			inst.Opcode, inst.Size = Table232(bytes[i : i+6])
 		case AH == 0x2 || AH == 0x3:
 			inst.Opcode = "mov"
-		case AH == 0x4 && AL == 0x0:
-			inst.Opcode = "bra"
-		case AH == 0x4 && AL == 0x1:
-			inst.Opcode = "brn"
-		case AH == 0x4 && AL == 0x2:
-			inst.Opcode = "bh"
-		case AH == 0x4 && AL == 0x3:
-			inst.Opcode = "bls"
-		case AH == 0x4 && AL == 0x4:
-			inst.Opcode = "bcc"
-		case AH == 0x4 && AL == 0x5:
-			inst.Opcode = "bcs"
-		case AH == 0x4 && AL == 0x6:
-			inst.Opcode = "bne"
-		case AH == 0x4 && AL == 0x7:
-			inst.Opcode = "beq"
-		case AH == 0x4 && AL == 0x8:
-			inst.Opcode = "bvc"
-		case AH == 0x4 && AL == 0x9:
-			inst.Opcode = "bvs"
-		case AH == 0x4 && AL == 0xA:
-			inst.Opcode = "bpl"
-		case AH == 0x4 && AL == 0xB:
-			inst.Opcode = "bmi"
-		case AH == 0x4 && AL == 0xC:
-			inst.Opcode = "bge"
-		case AH == 0x4 && AL == 0xD:
-			inst.Opcode = "blt"
-		case AH == 0x4 && AL == 0xE:
-			inst.Opcode = "bgt"
-		case AH == 0x4 && AL == 0xF:
-			inst.Opcode = "ble"
+		case AH == 0x4:
+			inst.Opcode = Branches(AL)
 		case AH == 0x5 && AL == 0x0:
 			inst.Opcode = "mulxu"
 		case AH == 0x5 && AL == 0x1:
@@ -264,20 +216,10 @@ func main() {
 			}
 		case AH == 0x7 && AL == 0x8:
 			inst.Opcode = "mov"
-		case AH == 0x7 && AL == 0x9:
-			inst.Opcode, inst.Size = Table232(bytes[i : i+6])
-		case AH == 0x7 && AL == 0xA:
+		case AH == 0x7 && (AL == 0x9 || AL == 0xA || AL == 0xC || AL == 0xD || AL == 0xE || AL == 0xF):
 			inst.Opcode, inst.Size = Table232(bytes[i : i+6])
 		case AH == 0x7 && AL == 0xB:
 			inst.Opcode = "eepmov"
-		case AH == 0x7 && AL == 0xC:
-			inst.Opcode, inst.Size = Table232(bytes[i : i+6])
-		case AH == 0x7 && AL == 0xD:
-			inst.Opcode, inst.Size = Table232(bytes[i : i+6])
-		case AH == 0x7 && AL == 0xE:
-			inst.Opcode, inst.Size = Table232(bytes[i : i+6])
-		case AH == 0x7 && AL == 0xF:
-			inst.Opcode, inst.Size = Table232(bytes[i : i+6])
 		case AH == 0x8:
 			inst.Opcode = "add"
 		case AH == 0x9:
@@ -538,41 +480,7 @@ func Table232(bytes []byte) (string, int) {
 			return "???word???", size
 		}
 	case AH == 0x5 && AL == 0x8:
-		switch {
-		// !! Duplicated obvious map
-		case BH == 0x0:
-			return "bra", size
-		case BH == 0x1:
-			return "brn", size
-		case BH == 0x2:
-			return "bh", size
-		case BH == 0x3:
-			return "bls", size
-		case BH == 0x4:
-			return "bcc", size
-		case BH == 0x5:
-			return "bcs", size
-		case BH == 0x6:
-			return "bne", size
-		case BH == 0x7:
-			return "beq", size
-		case BH == 0x8:
-			return "bvc", size
-		case BH == 0x9:
-			return "bvs", size
-		case BH == 0xA:
-			return "bpl", size
-		case BH == 0xB:
-			return "bmi", size
-		case BH == 0xC:
-			return "bge", size
-		case BH == 0xD:
-			return "blt", size
-		case BH == 0xE:
-			return "bgt", size
-		case BH == 0xF:
-			return "ble", size
-		}
+		return Branches(BH), size
 	case AH == 0x6 && AL == 0xA:
 		switch {
 		case BH == 0x0:
@@ -827,6 +735,42 @@ func Table233(bytes []byte) (string, int) {
 		}
 	}
 	return "???word???", 2
+}
+
+func Branches(b byte) string {
+	switch b {
+	case 0x0:
+		return "bra"
+	case 0x1:
+		return "brn"
+	case 0x2:
+		return "bh"
+	case 0x3:
+		return "bls"
+	case 0x4:
+		return "bcc"
+	case 0x5:
+		return "bcs"
+	case 0x6:
+		return "bne"
+	case 0x7:
+		return "beq"
+	case 0x8:
+		return "bvc"
+	case 0x9:
+		return "bvs"
+	case 0xA:
+		return "bpl"
+	case 0xB:
+		return "bmi"
+	case 0xC:
+		return "bge"
+	case 0xD:
+		return "blt"
+	case 0xE:
+		return "bgt"
+	}
+	return "ble"
 }
 
 func PrintAssy(instructions []Inst) {
