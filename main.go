@@ -51,7 +51,7 @@ func main() {
 		case AH == 0x0 && AL == 0x0:
 			inst.Opcode = "nop"
 		case AH == 0x0 && AL == 0x1:
-			inst.Opcode, inst.Size = Table232(bytes[i : i+6])
+			inst.Opcode, inst.Size = Table232(bytes[i : i+8])
 		case AH == 0x0 && AL == 0x2:
 			BH := bytes[i+1] >> 4
 			if BH&0x8 == 0 {
@@ -60,7 +60,6 @@ func main() {
 				inst.Opcode = "???word???"
 			}
 		case AH == 0x0 && AL == 0x3:
-			inst.Opcode = "unk"
 			BH := bytes[i+1] >> 4
 			if BH&0x8 == 0 {
 				inst.Opcode = "ldc"
@@ -80,7 +79,7 @@ func main() {
 		case AH == 0x0 && AL == 0x9:
 			inst.Opcode = "add"
 		case AH == 0x0 && (AL == 0xA || AL == 0xB || AL == 0xF):
-			inst.Opcode, inst.Size = Table232(bytes[i : i+6])
+			inst.Opcode, inst.Size = Table232(bytes[i : i+8])
 		case AH == 0x0 && AL == 0xC:
 			inst.Opcode = "mov"
 		case AH == 0x0 && AL == 0xD:
@@ -88,7 +87,7 @@ func main() {
 		case AH == 0x0 && AL == 0xE:
 			inst.Opcode = "addx"
 		case AH == 0x1 && (AL == 0x0 || AL == 0x1 || AL == 0x2 || AL == 0x3 || AL == 0x7 || AL == 0xA || AL == 0xB || AL == 0xF):
-			inst.Opcode, inst.Size = Table232(bytes[i : i+6])
+			inst.Opcode, inst.Size = Table232(bytes[i : i+8])
 		case AH == 0x1 && AL == 0x4:
 			inst.Opcode = "or"
 		case AH == 0x1 && AL == 0x5:
@@ -126,7 +125,7 @@ func main() {
 		case AH == 0x5 && AL == 0x7:
 			inst.Opcode = "trapa"
 		case AH == 0x5 && AL == 0x8:
-			inst.Opcode, inst.Size = Table232(bytes[i : i+6])
+			inst.Opcode, inst.Size = Table232(bytes[i : i+8])
 		case AH == 0x5 && AL == 0x9:
 			inst.Opcode = "jmp"
 		case AH == 0x5 && AL == 0xA:
@@ -167,7 +166,7 @@ func main() {
 		case AH == 0x6 && AL == 0x9:
 			inst.Opcode = "mov"
 		case AH == 0x6 && AL == 0xA:
-			inst.Opcode, inst.Size = Table232(bytes[i : i+6])
+			inst.Opcode, inst.Size = Table232(bytes[i : i+8])
 		case AH == 0x6 && AL == 0xB:
 			inst.Opcode = "mov"
 		case AH == 0x6 && AL == 0xC:
@@ -217,7 +216,7 @@ func main() {
 		case AH == 0x7 && AL == 0x8:
 			inst.Opcode = "mov"
 		case AH == 0x7 && (AL == 0x9 || AL == 0xA || AL == 0xC || AL == 0xD || AL == 0xE || AL == 0xF):
-			inst.Opcode, inst.Size = Table232(bytes[i : i+6])
+			inst.Opcode, inst.Size = Table232(bytes[i : i+8])
 		case AH == 0x7 && AL == 0xB:
 			inst.Opcode = "eepmov"
 		case AH == 0x8:
@@ -486,13 +485,11 @@ func Table232(bytes []byte) (string, int) {
 		case BH == 0x0:
 			return "mov", size
 		case BH == 0x1:
-			// table 2.3(4)
-			return "unk", size
+			return Table234(bytes)
 		case BH == 0x2:
 			return "mov", size
 		case BH == 0x3:
-			// table 2.3(4)
-			return "unk", size
+			return Table234(bytes)
 		case BH == 0x4:
 			return "movfpe", size
 		// 0x5 to 0x7 is illegal
@@ -735,6 +732,165 @@ func Table233(bytes []byte) (string, int) {
 		}
 	}
 	return "???word???", 2
+}
+
+func Table234(bytes []byte) (string, int) {
+	size := 6
+	// Make AH, AL, BH, BL, CH, CL, DH, DL, EH, EL, FH
+	AH := bytes[0] >> 4
+	AL := bytes[0] & 0x0F
+	BH := bytes[1] >> 4
+	BL := bytes[1] & 0x0F
+
+	// CH := bytes[2] >> 4      always address bytes
+	// CL := bytes[2] & 0x0F    always address bytes
+	// DH := bytes[3] >> 4      always address bytes
+	// DL := bytes[3] & 0x0F    always address bytes
+	EH := bytes[4] >> 4   // sometimes address byte
+	EL := bytes[4] & 0x0F // sometimes address byte
+	FH := bytes[5] >> 4   // sometimes address byte
+	// FL := bytes[5] & 0x0F    always address byte
+	GH := bytes[6] >> 4
+	// GL appears unused?
+	HH := bytes[7] >> 4
+	switch {
+	case AH == 0x6 && AL == 0xA && BH == 0x1 && BL == 0x0 && EH == 0x6:
+		switch EL {
+		case 0x3:
+			return "btst", size
+		default:
+			return "???word???", 2
+		}
+	case AH == 0x6 && AL == 0xA && BH == 0x1 && BL == 0x0 && EH == 0x7:
+		switch EL {
+		case 0x3:
+			return "btst", size
+		case 0x4:
+			if FH&0x8 == 0 {
+				return "bor", size
+			} else {
+				return "bior", size
+			}
+		case 0x5:
+			if FH&0x8 == 0 {
+				return "bxor", size
+			} else {
+				return "bixor", size
+			}
+		case 0x6:
+			if FH&0x8 == 0 {
+				return "band", size
+			} else {
+				return "biand", size
+			}
+		case 0x7:
+			if FH&0x8 == 0 {
+				return "bld", size
+			} else {
+				return "bild", size
+			}
+		default:
+			return "???word???", 2
+		}
+	case AH == 0x6 && AL == 0xA && BH == 0x1 && BL == 0x8 && EH == 0x6:
+		switch EL {
+		case 0x0:
+			return "bset", size
+		case 0x1:
+			return "bnot", size
+		case 0x2:
+			return "bclr", size
+		case 0x7:
+			if FH&0x8 == 0 {
+				return "bst", size
+			} else {
+				return "bist", size
+			}
+		default:
+			return "???word???", 2
+		}
+	case AH == 0x6 && AL == 0xA && BH == 0x1 && BL == 0x8 && EH == 0x7:
+		switch EL {
+		case 0x0:
+			return "bset", size
+		case 0x1:
+			return "bnot", size
+		case 0x2:
+			return "bclr", size
+		default:
+			return "???word???", 2
+		}
+	// AH 6 AL A BH 3 BL 0 GH 6
+	case AH == 0x6 && AL == 0xA && BH == 0x3 && BL == 0x0 && GH == 0x6:
+		switch EL {
+		case 0x3:
+			return "btst", size
+		default:
+			return "???word???", 2
+		}
+	case AH == 0x6 && AL == 0xA && BH == 0x3 && BL == 0x0 && GH == 0x7:
+		switch EL {
+		case 0x3:
+			return "btst", size
+		case 0x4:
+			if HH&0x8 == 0 {
+				return "bor", size
+			} else {
+				return "bior", size
+			}
+		case 0x5:
+			if HH&0x8 == 0 {
+				return "bxor", size
+			} else {
+				return "bixor", size
+			}
+		case 0x6:
+			if HH&0x8 == 0 {
+				return "band", size
+			} else {
+				return "biand", size
+			}
+		case 0x7:
+			if HH&0x8 == 0 {
+				return "bld", size
+			} else {
+				return "bild", size
+			}
+		default:
+			return "???word???", 2
+		}
+	case AH == 0x6 && AL == 0xA && BH == 0x3 && BL == 0x8 && GH == 0x6:
+		switch EL {
+		case 0x0:
+			return "bset", size
+		case 0x1:
+			return "bnot", size
+		case 0x2:
+			return "bclr", size
+		case 0x7:
+			if HH&0x8 == 0 {
+				return "bst", size
+			} else {
+				return "bist", size
+			}
+		default:
+			return "???word???", 2
+		}
+	case AH == 0x6 && AL == 0xA && BH == 0x3 && BL == 0x8 && GH == 0x7:
+		switch EL {
+		case 0x0:
+			return "bset", size
+		case 0x1:
+			return "bnot", size
+		case 0x2:
+			return "bclr", size
+		default:
+			return "???word???", 2
+		}
+	default:
+		return "???word???", 2
+	}
+
 }
 
 func Branches(b byte) string {
