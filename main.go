@@ -126,12 +126,8 @@ func main() {
 			}
 		case 0x6:
 			switch AL {
-			case 0x0:
-				inst.Opcode = "bset"
-			case 0x1:
-				inst.Opcode = "bnot"
-			case 0x2:
-				inst.Opcode = "bclr"
+			case 0x0, 0x1, 0x2:
+				inst.Opcode = BSetBNotBClr(AL)
 			case 0x3:
 				inst.Opcode = "btst"
 			case 0x4, 0x5, 0x6:
@@ -150,42 +146,11 @@ func main() {
 			}
 		case 0x7:
 			switch AL {
-			case 0x0:
-				inst.Opcode = "bset"
-			case 0x1:
-				inst.Opcode = "bnot"
-			case 0x2:
-				inst.Opcode = "bclr"
-			case 0x3:
-				inst.Opcode = "btst"
-			case 0x4:
+			case 0x0, 0x1, 0x2:
+				inst.Opcode = BSetBNotBClr(AL)
+			case 0x3, 0x4, 0x5, 0x6, 0x7:
 				BH := bytes[i+1] >> 4
-				if BH&0x8 == 0 {
-					inst.Opcode = "bor"
-				} else {
-					inst.Opcode = "bior"
-				}
-			case 0x5:
-				BH := bytes[i+1] >> 4
-				if BH&0x8 == 0 {
-					inst.Opcode = "bxor"
-				} else {
-					inst.Opcode = "bixor"
-				}
-			case 0x6:
-				BH := bytes[i+1] >> 4
-				if BH&0x8 == 0 {
-					inst.Opcode = "band"
-				} else {
-					inst.Opcode = "biand"
-				}
-			case 0x7:
-				BH := bytes[i+1] >> 4
-				if BH&0x8 == 0 {
-					inst.Opcode = "bld"
-				} else {
-					inst.Opcode = "bild"
-				}
+				inst.Opcode = BorBxorBandBld(AL, BH)
 			case 0x8:
 				inst.Opcode = "mov"
 			case 0x9, 0xA, 0xC, 0xD, 0xE, 0xF:
@@ -267,17 +232,9 @@ func Table232(bytes []byte) (string, int) {
 			}
 		case 0xB:
 			switch BH {
-			case 0x0:
+			case 0x0, 0x8, 0x9:
 				return "adds", size
-			case 0x5:
-				return "inc", size
-			case 0x7:
-				return "inc", size
-			case 0x8, 0x9:
-				return "adds", size
-			case 0xD:
-				return "inc", size
-			case 0xF:
+			case 0x5, 0x7, 0xD, 0xF:
 				return "inc", size
 			default:
 				return ".word", 2
@@ -296,34 +253,18 @@ func Table232(bytes []byte) (string, int) {
 		switch AL {
 		case 0x0:
 			switch BH {
-			case 0x0, 0x1:
+			case 0x0, 0x1, 0x3, 0x4, 0x5, 0x7:
 				return "shll", size
-			case 0x3, 0x4, 0x5:
-				return "shll", size
-			case 0x7:
-				return "shll", size
-			case 0x8, 0x9:
-				return "shal", size
-			case 0xB, 0xC, 0xD:
-				return "shal", size
-			case 0xF:
+			case 0x8, 0x9, 0xB, 0xC, 0xD, 0xF:
 				return "shal", size
 			default:
 				return ".word", 2
 			}
 		case 0x1:
 			switch BH {
-			case 0x0, 0x1:
+			case 0x0, 0x1, 0x3, 0x4, 0x5, 0x7:
 				return "shlr", size
-			case 0x3, 0x4, 0x5:
-				return "shlr", size
-			case 0x7:
-				return "shlr", size
-			case 0x8, 0x9:
-				return "shar", size
-			case 0xB, 0xC, 0xD:
-				return "shar", size
-			case 0xF:
+			case 0x8, 0x9, 0xB, 0xC, 0xD, 0xF:
 				return "shar", size
 			default:
 				return ".word", 2
@@ -370,12 +311,10 @@ func Table232(bytes []byte) (string, int) {
 			}
 		case 0xB:
 			switch BH {
-			case 0x0:
+			case 0x0, 0x8, 0x9:
 				return "subs", size
 			case 0x5, 0x7, 0xD, 0xF:
 				return "dec", size
-			case 0x8, 0x9:
-				return "subs", size
 			default:
 				return ".word", 2
 			}
@@ -398,12 +337,10 @@ func Table232(bytes []byte) (string, int) {
 		switch AL {
 		case 0xA:
 			switch BH {
-			case 0x0:
+			case 0x0, 0x2, 0xA, 0x8:
 				return "mov", size
 			case 0x1, 0x3:
 				return Table234(bytes)
-			case 0x2, 0xA, 0x8:
-				return "mov", size
 			case 0x4:
 				return "movfpe", size
 			case 0xC:
@@ -452,41 +389,25 @@ func Table233(bytes []byte) (string, int) {
 
 		switch BH {
 		case 0xC:
-			if !(BL == 0x0 && CH == 0x5) {
+			if !(BL == 0x0 && CH == 0x5) ||
+				(CL != 0x0 && CL != 0x2) {
 				return ".word", 2
 			}
-			switch CL {
-			case 0x0:
-				return "mulxs", size
-			case 0x2:
-				return "mulxs", size
-			default:
-				return ".word", 2
-			}
+			return "mulxs", size
 
 		case 0xD:
-			if !(BL == 0x0 && CH == 0x5) {
+			if !(BL == 0x0 && CH == 0x5 && CL == 0x1) &&
+				!(BL == 0x0 && CH == 0x5 && CL == 0x3) {
 				return ".word", 2
 			}
-			switch CL {
-			case 0x1:
-				return "divxs", size
-			case 0x3:
-				return "divxs", size
-			default:
-				return ".word", 2
-			}
+			return "divxs", size
 
 		case 0xF:
-			if !(BL == 0x0 && CH == 0x6) {
+			if !(BL == 0x0 && CH == 0x6) ||
+				(CL != 0x4 && CL != 0x5 && CL != 0x6) {
 				return ".word", 2
 			}
-			switch CL {
-			case 0x4, 0x5, 0x6:
-				return OrXorAnd(CL, false), size
-			default:
-				return ".word", 2
-			}
+			return OrXorAnd(CL, false), size
 		}
 
 	case 0x7:
@@ -503,32 +424,8 @@ func Table233(bytes []byte) (string, int) {
 				return "btst", size
 			case 0x7:
 				switch CL {
-				case 0x3:
-					return "btst", size
-				case 0x4:
-					if DH&0x8 == 0 {
-						return "bor", size
-					} else {
-						return "bior", size
-					}
-				case 0x5:
-					if DH&0x8 == 0 {
-						return "bxor", size
-					} else {
-						return "bixor", size
-					}
-				case 0x6:
-					if DH&0x8 == 0 {
-						return "band", size
-					} else {
-						return "biand", size
-					}
-				case 0x7:
-					if DH&0x8 == 0 {
-						return "bld", size
-					} else {
-						return "bild", size
-					}
+				case 0x3, 0x4, 0x5, 0x6, 0x7:
+					return BorBxorBandBld(CL, DH), size
 				default:
 					return ".word", 2
 				}
@@ -540,12 +437,8 @@ func Table233(bytes []byte) (string, int) {
 			switch CH {
 			case 0x6:
 				switch CL {
-				case 0x0:
-					return "bset", size
-				case 0x1:
-					return "bnot", size
-				case 0x2:
-					return "bclr", size
+				case 0x0, 0x1, 0x2:
+					return BSetBNotBClr(CL), 2
 				case 0x7:
 					if DH&0x8 == 0 {
 						return "bst", size
@@ -557,12 +450,8 @@ func Table233(bytes []byte) (string, int) {
 				}
 			case 0x7:
 				switch CL {
-				case 0x0:
-					return "bset", size
-				case 0x1:
-					return "bnot", size
-				case 0x2:
-					return "bclr", size
+				case 0x0, 0x1, 0x2:
+					return BSetBNotBClr(CL), 2
 				default:
 					return ".word", 2
 				}
@@ -577,32 +466,8 @@ func Table233(bytes []byte) (string, int) {
 				return "btst", size
 			case 0x7:
 				switch CL {
-				case 0x3:
-					return "btst", size
-				case 0x4:
-					if DH&0x8 == 0 {
-						return "bor", size
-					} else {
-						return "bior", size
-					}
-				case 0x5:
-					if DH&0x8 == 0 {
-						return "bxor", size
-					} else {
-						return "bixor", size
-					}
-				case 0x6:
-					if DH&0x8 == 0 {
-						return "band", size
-					} else {
-						return "biand", size
-					}
-				case 0x7:
-					if DH&0x8 == 0 {
-						return "bld", size
-					} else {
-						return "bild", size
-					}
+				case 0x3, 0x4, 0x5, 0x6, 0x7:
+					return BorBxorBandBld(CL, DH), size
 				default:
 					return ".word", 2
 				}
@@ -611,12 +476,8 @@ func Table233(bytes []byte) (string, int) {
 			switch CH {
 			case 0x6:
 				switch CL {
-				case 0x0:
-					return "bset", size
-				case 0x1:
-					return "bnot", size
-				case 0x2:
-					return "bclr", size
+				case 0x0, 0x1, 0x2:
+					return BSetBNotBClr(CL), 2
 				case 0x7:
 					if DH&0x8 == 0 {
 						return "bst", size
@@ -628,12 +489,8 @@ func Table233(bytes []byte) (string, int) {
 				}
 			case 0x7:
 				switch CL {
-				case 0x0:
-					return "bset", size
-				case 0x1:
-					return "bnot", size
-				case 0x2:
-					return "bclr", size
+				case 0x0, 0x1, 0x2:
+					return BSetBNotBClr(CL), 2
 				default:
 					return ".word", 2
 				}
@@ -681,32 +538,8 @@ func Table234(bytes []byte) (string, int) {
 				}
 			case 0x7:
 				switch EL {
-				case 0x3:
-					return "btst", size
-				case 0x4:
-					if FH&0x8 == 0 {
-						return "bor", size
-					} else {
-						return "bior", size
-					}
-				case 0x5:
-					if FH&0x8 == 0 {
-						return "bxor", size
-					} else {
-						return "bixor", size
-					}
-				case 0x6:
-					if FH&0x8 == 0 {
-						return "band", size
-					} else {
-						return "biand", size
-					}
-				case 0x7:
-					if FH&0x8 == 0 {
-						return "bld", size
-					} else {
-						return "bild", size
-					}
+				case 0x3, 0x4, 0x5, 0x6, 0x7:
+					return BorBxorBandBld(EL, FH), size
 				default:
 					return ".word", 2
 				}
@@ -715,12 +548,8 @@ func Table234(bytes []byte) (string, int) {
 			switch EH {
 			case 0x6:
 				switch EL {
-				case 0x0:
-					return "bset", size
-				case 0x1:
-					return "bnot", size
-				case 0x2:
-					return "bclr", size
+				case 0x0, 0x1, 0x2:
+					return BSetBNotBClr(EL), 2
 				case 0x7:
 					if FH&0x8 == 0 {
 						return "bst", size
@@ -732,12 +561,8 @@ func Table234(bytes []byte) (string, int) {
 				}
 			case 0x7:
 				switch EL {
-				case 0x0:
-					return "bset", size
-				case 0x1:
-					return "bnot", size
-				case 0x2:
-					return "bclr", size
+				case 0x0, 0x1, 0x2:
+					return BSetBNotBClr(EL), 2
 				default:
 					return ".word", 2
 				}
@@ -756,32 +581,8 @@ func Table234(bytes []byte) (string, int) {
 				}
 			case 0x7:
 				switch EL {
-				case 0x3:
-					return "btst", size
-				case 0x4:
-					if HH&0x8 == 0 {
-						return "bor", size
-					} else {
-						return "bior", size
-					}
-				case 0x5:
-					if HH&0x8 == 0 {
-						return "bxor", size
-					} else {
-						return "bixor", size
-					}
-				case 0x6:
-					if HH&0x8 == 0 {
-						return "band", size
-					} else {
-						return "biand", size
-					}
-				case 0x7:
-					if HH&0x8 == 0 {
-						return "bld", size
-					} else {
-						return "bild", size
-					}
+				case 0x3, 0x4, 0x5, 0x6, 0x7:
+					return BorBxorBandBld(EL, HH), size
 				default:
 					return ".word", 2
 				}
@@ -790,12 +591,8 @@ func Table234(bytes []byte) (string, int) {
 			switch GH {
 			case 0x6:
 				switch EL {
-				case 0x0:
-					return "bset", size
-				case 0x1:
-					return "bnot", size
-				case 0x2:
-					return "bclr", size
+				case 0x0, 0x1, 0x2:
+					return BSetBNotBClr(EL), 2
 				case 0x7:
 					if HH&0x8 == 0 {
 						return "bst", size
@@ -807,12 +604,8 @@ func Table234(bytes []byte) (string, int) {
 				}
 			case 0x7:
 				switch EL {
-				case 0x0:
-					return "bset", size
-				case 0x1:
-					return "bnot", size
-				case 0x2:
-					return "bclr", size
+				case 0x0, 0x1, 0x2:
+					return BSetBNotBClr(EL), 2
 				default:
 					return ".word", 2
 				}
@@ -849,6 +642,15 @@ func Branches(b byte) string {
 	return branchMap[b]
 }
 
+func BSetBNotBClr(b byte) string {
+	bsetbnotbclrMap := map[byte]string{
+		0x0: "bset",
+		0x1: "bnot",
+		0x2: "bclr",
+	}
+	return bsetbnotbclrMap[b]
+}
+
 func OrXorAnd(b byte, shift bool) string {
 	if shift {
 		b = b - 0x8
@@ -859,6 +661,26 @@ func OrXorAnd(b byte, shift bool) string {
 		0x6: "and",
 	}
 	return orXorAndMap[b]
+}
+
+func BorBxorBandBld(b byte, CB byte) string {
+
+	// if DH&0x8 != 0 and it's not going to be btst, shift b up by 8, so we can lookup in one map
+	if CB&0x8 != 0 && b != 0x3 {
+		b = b + 0x8
+	}
+	m := map[byte]string{
+		0x3: "btst",
+		0x4: "bor",
+		0x5: "bxor",
+		0x6: "band",
+		0x7: "bld",
+		0xC: "bior",
+		0xD: "bixor",
+		0xE: "biand",
+		0xF: "bild",
+	}
+	return m[b]
 }
 
 func PrintAssy(instructions []Inst) {
