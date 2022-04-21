@@ -694,6 +694,11 @@ func Table234(bytes []byte) (string, int) {
 	size := 6
 	AH := bytes[0] >> 4
 	AL := bytes[0] & 0x0F
+
+	if !(AH == 0x6 && AL == 0xA) {
+		panic("Attempted to lookup instruction with wrong prefix. Only 0x6A is valid for the first byte." + fmt.Sprintf("First byte was %x", bytes[0]))
+	}
+
 	BH := bytes[1] >> 4
 	BL := bytes[1] & 0x0F
 
@@ -708,180 +713,187 @@ func Table234(bytes []byte) (string, int) {
 	GH := bytes[6] >> 4
 	// GL appears unused?
 	HH := bytes[7] >> 4
-	switch {
-	case AH == 0x6 && AL == 0xA && BH == 0x1 && BL == 0x0 && EH == 0x6:
-		switch EL {
-		case 0x3:
-			return "btst", size
-		default:
-			return ".word", 2
-		}
-	case AH == 0x6 && AL == 0xA && BH == 0x1 && BL == 0x0 && EH == 0x7:
-		switch EL {
-		case 0x3:
-			return "btst", size
-		case 0x4:
-			if FH&0x8 == 0 {
-				return "bor", size
-			} else {
-				return "bior", size
-			}
-		case 0x5:
-			if FH&0x8 == 0 {
-				return "bxor", size
-			} else {
-				return "bixor", size
-			}
-		case 0x6:
-			if FH&0x8 == 0 {
-				return "band", size
-			} else {
-				return "biand", size
-			}
-		case 0x7:
-			if FH&0x8 == 0 {
-				return "bld", size
-			} else {
-				return "bild", size
-			}
-		default:
-			return ".word", 2
-		}
-	case AH == 0x6 && AL == 0xA && BH == 0x1 && BL == 0x8 && EH == 0x6:
-		switch EL {
+
+	switch BH {
+	case 0x1:
+		switch BL {
 		case 0x0:
-			return "bset", size
-		case 0x1:
-			return "bnot", size
-		case 0x2:
-			return "bclr", size
-		case 0x7:
-			if FH&0x8 == 0 {
-				return "bst", size
-			} else {
-				return "bist", size
+			switch EH {
+			case 0x6:
+				switch EL {
+				case 0x3:
+					return "btst", size
+				default:
+					return ".word", 2
+				}
+			case 0x7:
+				switch EL {
+				case 0x3:
+					return "btst", size
+				case 0x4:
+					if FH&0x8 == 0 {
+						return "bor", size
+					} else {
+						return "bior", size
+					}
+				case 0x5:
+					if FH&0x8 == 0 {
+						return "bxor", size
+					} else {
+						return "bixor", size
+					}
+				case 0x6:
+					if FH&0x8 == 0 {
+						return "band", size
+					} else {
+						return "biand", size
+					}
+				case 0x7:
+					if FH&0x8 == 0 {
+						return "bld", size
+					} else {
+						return "bild", size
+					}
+				default:
+					return ".word", 2
+				}
 			}
-		default:
-			return ".word", 2
+		case 0x8:
+			switch EH {
+			case 0x6:
+				switch EL {
+				case 0x0:
+					return "bset", size
+				case 0x1:
+					return "bnot", size
+				case 0x2:
+					return "bclr", size
+				case 0x7:
+					if FH&0x8 == 0 {
+						return "bst", size
+					} else {
+						return "bist", size
+					}
+				default:
+					return ".word", 2
+				}
+			case 0x7:
+				switch EL {
+				case 0x0:
+					return "bset", size
+				case 0x1:
+					return "bnot", size
+				case 0x2:
+					return "bclr", size
+				default:
+					return ".word", 2
+				}
+			}
 		}
-	case AH == 0x6 && AL == 0xA && BH == 0x1 && BL == 0x8 && EH == 0x7:
-		switch EL {
+	case 0x3:
+		switch BL {
 		case 0x0:
-			return "bset", size
-		case 0x1:
-			return "bnot", size
-		case 0x2:
-			return "bclr", size
-		default:
-			return ".word", 2
-		}
-	// AH 6 AL A BH 3 BL 0 GH 6
-	case AH == 0x6 && AL == 0xA && BH == 0x3 && BL == 0x0 && GH == 0x6:
-		switch EL {
-		case 0x3:
-			return "btst", size
-		default:
-			return ".word", 2
-		}
-	case AH == 0x6 && AL == 0xA && BH == 0x3 && BL == 0x0 && GH == 0x7:
-		switch EL {
-		case 0x3:
-			return "btst", size
-		case 0x4:
-			if HH&0x8 == 0 {
-				return "bor", size
-			} else {
-				return "bior", size
+			switch GH {
+			case 0x6:
+				switch EL {
+				case 0x3:
+					return "btst", size
+				default:
+					return ".word", 2
+				}
+			case 0x7:
+				switch EL {
+				case 0x3:
+					return "btst", size
+				case 0x4:
+					if HH&0x8 == 0 {
+						return "bor", size
+					} else {
+						return "bior", size
+					}
+				case 0x5:
+					if HH&0x8 == 0 {
+						return "bxor", size
+					} else {
+						return "bixor", size
+					}
+				case 0x6:
+					if HH&0x8 == 0 {
+						return "band", size
+					} else {
+						return "biand", size
+					}
+				case 0x7:
+					if HH&0x8 == 0 {
+						return "bld", size
+					} else {
+						return "bild", size
+					}
+				default:
+					return ".word", 2
+				}
 			}
-		case 0x5:
-			if HH&0x8 == 0 {
-				return "bxor", size
-			} else {
-				return "bixor", size
+		case 0x8:
+			switch GH {
+			case 0x6:
+				switch EL {
+				case 0x0:
+					return "bset", size
+				case 0x1:
+					return "bnot", size
+				case 0x2:
+					return "bclr", size
+				case 0x7:
+					if HH&0x8 == 0 {
+						return "bst", size
+					} else {
+						return "bist", size
+					}
+				default:
+					return ".word", 2
+				}
+			case 0x7:
+				switch EL {
+				case 0x0:
+					return "bset", size
+				case 0x1:
+					return "bnot", size
+				case 0x2:
+					return "bclr", size
+				default:
+					return ".word", 2
+				}
+			default:
+				return ".word", 2
 			}
-		case 0x6:
-			if HH&0x8 == 0 {
-				return "band", size
-			} else {
-				return "biand", size
-			}
-		case 0x7:
-			if HH&0x8 == 0 {
-				return "bld", size
-			} else {
-				return "bild", size
-			}
-		default:
-			return ".word", 2
-		}
-	case AH == 0x6 && AL == 0xA && BH == 0x3 && BL == 0x8 && GH == 0x6:
-		switch EL {
-		case 0x0:
-			return "bset", size
-		case 0x1:
-			return "bnot", size
-		case 0x2:
-			return "bclr", size
-		case 0x7:
-			if HH&0x8 == 0 {
-				return "bst", size
-			} else {
-				return "bist", size
-			}
-		default:
-			return ".word", 2
-		}
-	case AH == 0x6 && AL == 0xA && BH == 0x3 && BL == 0x8 && GH == 0x7:
-		switch EL {
-		case 0x0:
-			return "bset", size
-		case 0x1:
-			return "bnot", size
-		case 0x2:
-			return "bclr", size
-		default:
-			return ".word", 2
 		}
 	default:
 		return ".word", 2
-	}
 
+	}
+	return ".word", 2
 }
 
 func Branches(b byte) string {
-	switch b {
-	case 0x0:
-		return "bra"
-	case 0x1:
-		return "brn"
-	case 0x2:
-		return "bh"
-	case 0x3:
-		return "bls"
-	case 0x4:
-		return "bcc"
-	case 0x5:
-		return "bcs"
-	case 0x6:
-		return "bne"
-	case 0x7:
-		return "beq"
-	case 0x8:
-		return "bvc"
-	case 0x9:
-		return "bvs"
-	case 0xA:
-		return "bpl"
-	case 0xB:
-		return "bmi"
-	case 0xC:
-		return "bge"
-	case 0xD:
-		return "blt"
-	case 0xE:
-		return "bgt"
+	branchMap := map[byte]string{
+		0x0: "bra",
+		0x1: "brn",
+		0x2: "bh",
+		0x3: "bls",
+		0x4: "bcc",
+		0x5: "bcs",
+		0x6: "bne",
+		0x7: "beq",
+		0x8: "bvc",
+		0x9: "bvs",
+		0xA: "bpl",
+		0xB: "bmi",
+		0xC: "bge",
+		0xD: "blt",
+		0xE: "bgt",
+		0xF: "ble",
 	}
-	return "ble"
+	return branchMap[b]
 }
 
 func PrintAssy(instructions []Inst) {
