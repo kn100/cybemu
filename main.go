@@ -88,12 +88,8 @@ func main() {
 			switch AL {
 			case 0x0, 0x1, 0x2, 0x3, 0x7, 0xA, 0xB, 0xF:
 				inst.Opcode, inst.Size = Table232(bytes[i : i+8])
-			case 0x4:
-				inst.Opcode = "or"
-			case 0x5:
-				inst.Opcode = "xor"
-			case 0x6:
-				inst.Opcode = "and"
+			case 0x4, 0x5, 0x6:
+				inst.Opcode = OrXorAnd(AL, false)
 			case 0x8, 0x9:
 				inst.Opcode = "sub"
 			case 0xC, 0xD:
@@ -138,12 +134,8 @@ func main() {
 				inst.Opcode = "bclr"
 			case 0x3:
 				inst.Opcode = "btst"
-			case 0x4:
-				inst.Opcode = "or"
-			case 0x5:
-				inst.Opcode = "xor"
-			case 0x6:
-				inst.Opcode = "and"
+			case 0x4, 0x5, 0x6:
+				inst.Opcode = OrXorAnd(AL, false)
 			case 0x7:
 				BH := bytes[i+1] >> 4
 				if BH&0x8 == 0 {
@@ -210,12 +202,8 @@ func main() {
 			inst.Opcode = "cmp"
 		case 0xB:
 			inst.Opcode = "subx"
-		case 0xC:
-			inst.Opcode = "or"
-		case 0xD:
-			inst.Opcode = "xor"
-		case 0xE:
-			inst.Opcode = "and"
+		case 0xC, 0xD, 0xE:
+			inst.Opcode = OrXorAnd(AH, true)
 		case 0xF:
 			inst.Opcode = "mov"
 		default:
@@ -266,7 +254,7 @@ func Table232(bytes []byte) (string, int) {
 			case 0xF:
 				return Table233(bytes)
 			default:
-				return ".word", size
+				return ".word", 2
 			}
 		case 0xA:
 			switch BH {
@@ -275,7 +263,7 @@ func Table232(bytes []byte) (string, int) {
 			case 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF:
 				return "add", size
 			default:
-				return ".word", size
+				return ".word", 2
 			}
 		case 0xB:
 			switch BH {
@@ -292,7 +280,7 @@ func Table232(bytes []byte) (string, int) {
 			case 0xF:
 				return "inc", size
 			default:
-				return ".word", size
+				return ".word", 2
 			}
 		case 0xF:
 			switch BH {
@@ -301,7 +289,7 @@ func Table232(bytes []byte) (string, int) {
 			case 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF:
 				return "mov", size
 			default:
-				return ".word", size
+				return ".word", 2
 			}
 		}
 	case 0x1:
@@ -321,7 +309,7 @@ func Table232(bytes []byte) (string, int) {
 			case 0xF:
 				return "shal", size
 			default:
-				return ".word", size
+				return ".word", 2
 			}
 		case 0x1:
 			switch BH {
@@ -338,7 +326,7 @@ func Table232(bytes []byte) (string, int) {
 			case 0xF:
 				return "shar", size
 			default:
-				return ".word", size
+				return ".word", 2
 			}
 		case 0x2:
 			switch BH {
@@ -347,7 +335,7 @@ func Table232(bytes []byte) (string, int) {
 			case 0x8, 0x9, 0xB, 0xC, 0xD, 0xF:
 				return "rotl", size
 			default:
-				return ".word", size
+				return ".word", 2
 			}
 		case 0x3:
 			switch BH {
@@ -356,7 +344,7 @@ func Table232(bytes []byte) (string, int) {
 			case 0x8, 0x9, 0xB, 0xC, 0xD, 0xF:
 				return "rotr", size
 			default:
-				return ".word", size
+				return ".word", 2
 			}
 		case 0x7:
 			switch BH {
@@ -369,7 +357,7 @@ func Table232(bytes []byte) (string, int) {
 			case 0xD, 0xF:
 				return "exts", size
 			default:
-				return ".word", size
+				return ".word", 2
 			}
 		case 0xA:
 			switch BH {
@@ -378,7 +366,7 @@ func Table232(bytes []byte) (string, int) {
 			case 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF:
 				return "sub", size
 			default:
-				return ".word", size
+				return ".word", 2
 			}
 		case 0xB:
 			switch BH {
@@ -389,7 +377,7 @@ func Table232(bytes []byte) (string, int) {
 			case 0x8, 0x9:
 				return "subs", size
 			default:
-				return ".word", size
+				return ".word", 2
 			}
 		case 0xF:
 			switch BH {
@@ -398,7 +386,7 @@ func Table232(bytes []byte) (string, int) {
 			case 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF:
 				return "cmp", size
 			default:
-				return ".word", size
+				return ".word", 2
 			}
 		}
 	case 0x5:
@@ -421,12 +409,12 @@ func Table232(bytes []byte) (string, int) {
 			case 0xC:
 				return "movtpe", size
 			default:
-				return ".word", size
+				return ".word", 2
 			}
 		}
 	case 0x7:
 		switch AL {
-		case 0x9:
+		case 0x9, 0xA:
 			switch BH {
 			case 0x0:
 				return "mov", size
@@ -436,37 +424,14 @@ func Table232(bytes []byte) (string, int) {
 				return "cmp", size
 			case 0x3:
 				return "sub", size
-			case 0x4:
-				return "or", size
-			case 0x5:
-				return "xor", size
-			case 0x6:
-				return "and", size
+			case 0x4, 0x5, 0x6:
+				return OrXorAnd(BH, false), size
 			default:
-				return ".word", size
-			}
-		case 0xA:
-			switch BH {
-			case 0x0:
-				return "mov", size
-			case 0x1:
-				return "add", size
-			case 0x2:
-				return "cmp", size
-			case 0x3:
-				return "sub", size
-			case 0x4:
-				return "or", size
-			case 0x5:
-				return "xor", size
-			case 0x6:
-				return "and", size
-			default:
-				return ".word", size
+				return ".word", 2
 			}
 		}
 	}
-	return ".word", size
+	return ".word", 2
 }
 
 // Table2.3 (3) - returns the instruction and the size in bytes (4)
@@ -481,147 +446,135 @@ func Table233(bytes []byte) (string, int) {
 	DH := bytes[3] >> 4
 	switch AH {
 	case 0x0:
-		switch AL {
-		case 0x1:
-			switch BH {
-			case 0xC:
-				switch BL {
-				case 0x0:
-					switch CH {
-					case 0x5:
-						switch CL {
-						case 0x0:
-							return "mulxs", size
-						case 0x2:
-							return "mulxs", size
-						default:
-							return ".word", 2
-						}
-					}
-				}
-			case 0xD:
-				switch BL {
-				case 0x0:
-					switch CH {
-					case 0x5:
-						switch CL {
-						case 0x1:
-							return "divxs", size
-						case 0x3:
-							return "divxs", size
-						default:
-							return ".word", 2
-						}
-					}
-				}
-			case 0xF:
-				switch BL {
-				case 0x0:
-					switch CH {
-					case 0x6:
-						switch CL {
-						case 0x4:
-							return "or", size
-						case 0x5:
-							return "xor", size
-						case 0x6:
-							return "and", size
-						default:
-							return ".word", 2
-						}
-					}
-				}
+		if AL != 0x1 {
+			return ".word", 2
+		}
+
+		switch BH {
+		case 0xC:
+			if !(BL == 0x0 && CH == 0x5) {
+				return ".word", 2
+			}
+			switch CL {
+			case 0x0:
+				return "mulxs", size
+			case 0x2:
+				return "mulxs", size
+			default:
+				return ".word", 2
+			}
+
+		case 0xD:
+			if !(BL == 0x0 && CH == 0x5) {
+				return ".word", 2
+			}
+			switch CL {
+			case 0x1:
+				return "divxs", size
+			case 0x3:
+				return "divxs", size
+			default:
+				return ".word", 2
+			}
+
+		case 0xF:
+			if !(BL == 0x0 && CH == 0x6) {
+				return ".word", 2
+			}
+			switch CL {
+			case 0x4, 0x5, 0x6:
+				return OrXorAnd(CL, false), size
+			default:
+				return ".word", 2
 			}
 		}
+
 	case 0x7:
 		switch AL {
 		case 0xC:
-			switch BL {
-			case 0x0:
-				switch CH {
+			if BL != 0x0 {
+				return ".word", 2
+			}
+			switch CH {
+			case 0x6:
+				if CL != 0x3 {
+					return ".word", 2
+				}
+				return "btst", size
+			case 0x7:
+				switch CL {
+				case 0x3:
+					return "btst", size
+				case 0x4:
+					if DH&0x8 == 0 {
+						return "bor", size
+					} else {
+						return "bior", size
+					}
+				case 0x5:
+					if DH&0x8 == 0 {
+						return "bxor", size
+					} else {
+						return "bixor", size
+					}
 				case 0x6:
-					switch CL {
-					case 0x3:
-						return "btst", size
-					default:
-						return ".word", 2
+					if DH&0x8 == 0 {
+						return "band", size
+					} else {
+						return "biand", size
 					}
 				case 0x7:
-					switch CL {
-					case 0x3:
-						return "btst", size
-					case 0x4:
-						if DH&0x8 == 0 {
-							return "bor", size
-						} else {
-							return "bior", size
-						}
-					case 0x5:
-						if DH&0x8 == 0 {
-							return "bxor", size
-						} else {
-							return "bixor", size
-						}
-					case 0x6:
-						if DH&0x8 == 0 {
-							return "band", size
-						} else {
-							return "biand", size
-						}
-					case 0x7:
-						if DH&0x8 == 0 {
-							return "bld", size
-						} else {
-							return "bild", size
-						}
-					default:
-						return ".word", 2
+					if DH&0x8 == 0 {
+						return "bld", size
+					} else {
+						return "bild", size
 					}
+				default:
+					return ".word", 2
 				}
 			}
 		case 0xD:
-			switch BL {
-			case 0x0:
-				switch CH {
-				case 0x6:
-					switch CL {
-					case 0x0:
-						return "bset", size
-					case 0x1:
-						return "bnot", size
-					case 0x2:
-						return "bclr", size
-					case 0x7:
-						if DH&0x8 == 0 {
-							return "bst", size
-						} else {
-							return "bist", size
-						}
-					default:
-						return ".word", 2
-					}
+			if BL != 0x0 {
+				return ".word", 2
+			}
+			switch CH {
+			case 0x6:
+				switch CL {
+				case 0x0:
+					return "bset", size
+				case 0x1:
+					return "bnot", size
+				case 0x2:
+					return "bclr", size
 				case 0x7:
-					switch CL {
-					case 0x0:
-						return "bset", size
-					case 0x1:
-						return "bnot", size
-					case 0x2:
-						return "bclr", size
-					default:
-						return ".word", 2
+					if DH&0x8 == 0 {
+						return "bst", size
+					} else {
+						return "bist", size
 					}
+				default:
+					return ".word", 2
 				}
+			case 0x7:
+				switch CL {
+				case 0x0:
+					return "bset", size
+				case 0x1:
+					return "bnot", size
+				case 0x2:
+					return "bclr", size
+				default:
+					return ".word", 2
+				}
+
 			}
 		case 0xE:
 			switch CH {
 			case 0x6:
-				switch CL {
-				case 0x3:
-					return "btst", size
-				default:
+				if CL != 0x3 {
 					return ".word", 2
 				}
+				return "btst", size
 			case 0x7:
 				switch CL {
 				case 0x3:
@@ -894,6 +847,18 @@ func Branches(b byte) string {
 		0xF: "ble",
 	}
 	return branchMap[b]
+}
+
+func OrXorAnd(b byte, shift bool) string {
+	if shift {
+		b = b - 0x8
+	}
+	orXorAndMap := map[byte]string{
+		0x4: "or",
+		0x5: "xor",
+		0x6: "and",
+	}
+	return orXorAndMap[b]
 }
 
 func PrintAssy(instructions []Inst) {
