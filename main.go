@@ -479,176 +479,212 @@ func Table233(bytes []byte) (string, int) {
 	CH := bytes[2] >> 4
 	CL := bytes[2] & 0x0F
 	DH := bytes[3] >> 4
-	switch {
-	case AH == 0x0 && AL == 0x1 && BH == 0xC && BL == 0x0 && CH == 0x5:
-		switch {
-		case CL == 0x0:
-			return "mulxs", size
-		case CL == 0x2:
-			return "mulxs", size
-		default:
-			return ".word", 2
-		}
-	case AH == 0x0 && AL == 0x1 && BH == 0xD && BL == 0x0 && CH == 0x5:
-		switch {
-		case CL == 0x1:
-			return "divxs", size
-		case CL == 0x3:
-			return "divxs", size
-		default:
-			return ".word", 2
-		}
-	case AH == 0x0 && AL == 0x1 && BH == 0xF && BL == 0x0 && CH == 0x6:
-		switch {
-		case CL == 0x4:
-			return "or", size
-		case CL == 0x5:
-			return "xor", size
-		case CL == 0x6:
-			return "and", size
-		default:
-			return ".word", 2
-		}
-	// BH here is actually a register field
-	case AH == 0x7 && AL == 0xC && BL == 0x0 && CH == 0x6:
-		switch {
-		case CL == 0x3:
-			return "btst", size
-		default:
-			return ".word", 2
-		}
-	// BH here is actually a register field
-	case AH == 0x7 && AL == 0xC && BL == 0x0 && CH == 0x7:
-		switch {
-		case CL == 0x3:
-			return "btst", size
-		case CL == 0x4:
-			if DH&0x8 == 0 {
-				return "bor", size
-			} else {
-				return "bior", size
+	switch AH {
+	case 0x0:
+		switch AL {
+		case 0x1:
+			switch BH {
+			case 0xC:
+				switch BL {
+				case 0x0:
+					switch CH {
+					case 0x5:
+						switch CL {
+						case 0x0:
+							return "mulxs", size
+						case 0x2:
+							return "mulxs", size
+						default:
+							return ".word", 2
+						}
+					}
+				}
+			case 0xD:
+				switch BL {
+				case 0x0:
+					switch CH {
+					case 0x5:
+						switch CL {
+						case 0x1:
+							return "divxs", size
+						case 0x3:
+							return "divxs", size
+						default:
+							return ".word", 2
+						}
+					}
+				}
+			case 0xF:
+				switch BL {
+				case 0x0:
+					switch CH {
+					case 0x6:
+						switch CL {
+						case 0x4:
+							return "or", size
+						case 0x5:
+							return "xor", size
+						case 0x6:
+							return "and", size
+						default:
+							return ".word", 2
+						}
+					}
+				}
 			}
-		case CL == 0x5:
-			if DH&0x8 == 0 {
-				return "bxor", size
-			} else {
-				return "bixor", size
-			}
-		case CL == 0x6:
-			if DH&0x8 == 0 {
-				return "band", size
-			} else {
-				return "biand", size
-			}
-		case CL == 0x7:
-			if DH&0x8 == 0 {
-				return "bld", size
-			} else {
-				return "bild", size
-			}
-		default:
-			return ".word", 2
 		}
-	// BH here is actually a register field
-	case AH == 0x7 && AL == 0xD && BL == 0x0 && CH == 0x6:
-		switch {
-		case CL == 0x0:
-			return "bset", size
-		case CL == 0x1:
-			return "bnot", size
-		case CL == 0x2:
-			return "bclr", size
-		case CL == 0x7:
-			if DH&0x8 == 0 {
-				return "bst", size
-			} else {
-				return "bist", size
+	case 0x7:
+		switch AL {
+		case 0xC:
+			switch BL {
+			case 0x0:
+				switch CH {
+				case 0x6:
+					switch CL {
+					case 0x3:
+						return "btst", size
+					default:
+						return ".word", 2
+					}
+				case 0x7:
+					switch CL {
+					case 0x3:
+						return "btst", size
+					case 0x4:
+						if DH&0x8 == 0 {
+							return "bor", size
+						} else {
+							return "bior", size
+						}
+					case 0x5:
+						if DH&0x8 == 0 {
+							return "bxor", size
+						} else {
+							return "bixor", size
+						}
+					case 0x6:
+						if DH&0x8 == 0 {
+							return "band", size
+						} else {
+							return "biand", size
+						}
+					case 0x7:
+						if DH&0x8 == 0 {
+							return "bld", size
+						} else {
+							return "bild", size
+						}
+					default:
+						return ".word", 2
+					}
+				}
 			}
-		default:
-			return ".word", 2
-		}
-	// BH here is actually a register field
-	case AH == 0x7 && AL == 0xD && BL == 0x0 && CH == 0x7:
-		switch {
-		case CL == 0x0:
-			return "bset", size
-		case CL == 0x1:
-			return "bnot", size
-		case CL == 0x2:
-			return "bclr", size
-		default:
-			return ".word", 2
-		}
-	// BH and BL here are actually an absolute address
-	case AH == 0x7 && AL == 0xE && CH == 0x6:
-		switch {
-		case CL == 0x3:
-			return "btst", size
-		default:
-			return ".word", 2
-		}
-	// BH and BL here are actually an absolute address
-	case AH == 0x7 && AL == 0xE && CH == 0x7:
-		switch {
-		case CL == 0x3:
-			return "btst", size
-		case CL == 0x4:
-			if DH&0x8 == 0 {
-				return "bor", size
-			} else {
-				return "bior", size
+		case 0xD:
+			switch BL {
+			case 0x0:
+				switch CH {
+				case 0x6:
+					switch CL {
+					case 0x0:
+						return "bset", size
+					case 0x1:
+						return "bnot", size
+					case 0x2:
+						return "bclr", size
+					case 0x7:
+						if DH&0x8 == 0 {
+							return "bst", size
+						} else {
+							return "bist", size
+						}
+					default:
+						return ".word", 2
+					}
+				case 0x7:
+					switch CL {
+					case 0x0:
+						return "bset", size
+					case 0x1:
+						return "bnot", size
+					case 0x2:
+						return "bclr", size
+					default:
+						return ".word", 2
+					}
+				}
 			}
-		case CL == 0x5:
-			if DH&0x8 == 0 {
-				return "bxor", size
-			} else {
-				return "bixor", size
+		case 0xE:
+			switch CH {
+			case 0x6:
+				switch CL {
+				case 0x3:
+					return "btst", size
+				default:
+					return ".word", 2
+				}
+			case 0x7:
+				switch CL {
+				case 0x3:
+					return "btst", size
+				case 0x4:
+					if DH&0x8 == 0 {
+						return "bor", size
+					} else {
+						return "bior", size
+					}
+				case 0x5:
+					if DH&0x8 == 0 {
+						return "bxor", size
+					} else {
+						return "bixor", size
+					}
+				case 0x6:
+					if DH&0x8 == 0 {
+						return "band", size
+					} else {
+						return "biand", size
+					}
+				case 0x7:
+					if DH&0x8 == 0 {
+						return "bld", size
+					} else {
+						return "bild", size
+					}
+				default:
+					return ".word", 2
+				}
 			}
-		case CL == 0x6:
-			if DH&0x8 == 0 {
-				return "band", size
-			} else {
-				return "biand", size
+		case 0xF:
+			switch CH {
+			case 0x6:
+				switch CL {
+				case 0x0:
+					return "bset", size
+				case 0x1:
+					return "bnot", size
+				case 0x2:
+					return "bclr", size
+				case 0x7:
+					if DH&0x8 == 0 {
+						return "bst", size
+					} else {
+						return "bist", size
+					}
+				default:
+					return ".word", 2
+				}
+			case 0x7:
+				switch CL {
+				case 0x0:
+					return "bset", size
+				case 0x1:
+					return "bnot", size
+				case 0x2:
+					return "bclr", size
+				default:
+					return ".word", 2
+				}
 			}
-		case CL == 0x7:
-			if DH&0x8 == 0 {
-				return "bld", size
-			} else {
-				return "bild", size
-			}
-		default:
-			return ".word", 2
-		}
-	// BH and BL here are actually an absolute address
-	case AH == 0x7 && AL == 0xF && CH == 0x6:
-		switch {
-		case CL == 0x0:
-			return "bset", size
-		case CL == 0x1:
-			return "bnot", size
-		case CL == 0x2:
-			return "bclr", size
-		case CL == 0x7:
-			if DH&0x8 == 0 {
-				return "bst", size
-			} else {
-				return "bist", size
-			}
-		default:
-			return ".word", 2
-		}
-		// BH and BL here are actually an absolute address
-	case AH == 0x7 && AL == 0xF && CH == 0x7:
-		// 0: bset, 1: bnot, 2: bclr
-		switch {
-		case CL == 0x0:
-			return "bset", size
-		case CL == 0x1:
-			return "bnot", size
-		case CL == 0x2:
-			return "bclr", size
-		default:
-			return ".word", 2
 		}
 	}
 	return ".word", 2
