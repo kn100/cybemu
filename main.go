@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/kn100/cybemu/asmprinter"
 	"github.com/kn100/cybemu/disassembler"
 )
 
@@ -30,5 +31,5 @@ func main() {
 	bytes := make([]byte, finfo.Size())
 	f.Read(bytes)
 	instructions := disassembler.Disassemble(bytes)
-	disassembler.PrintAssy(instructions)
+	asmprinter.PrintAssy(instructions)
 }
