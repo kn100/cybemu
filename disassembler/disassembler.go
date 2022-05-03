@@ -330,8 +330,16 @@ func Decode(bytes []byte) Inst {
 			}
 		case 0xD:
 			switch BH {
+			case 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6:
+				inst.Opcode = "mov"
+				inst.BWL = Word
+				inst.AddressingMode = RegisterIndirectWithPostIncrement
 			case 0x7:
 				inst.Opcode = "pop"
+				inst.BWL = Word
+				inst.AddressingMode = RegisterIndirectWithPostIncrement
+			case 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE:
+				inst.Opcode = "mov"
 				inst.BWL = Word
 				inst.AddressingMode = RegisterIndirectWithPostIncrement
 			case 0xF:
@@ -442,7 +450,7 @@ func table232(inst Inst, bytes []byte) Inst {
 	FL := bytes[5] & 0x0F
 	if AH == 0x0 && AL == 0x1 && BH == 0x0 && BL == 0x0 {
 		// 01 00 69
-		if CH == 0x6 && CL == 0x9 {
+		if CH == 0x6 && CL == 0x9 && DL < 0x8 {
 			inst.TotalBytes = 4
 			inst.AddressingMode = RegisterIndirect
 			inst.BWL = Longword
@@ -453,7 +461,7 @@ func table232(inst Inst, bytes []byte) Inst {
 			inst.AddressingMode = RegisterIndirectWithDisplacement
 			inst.BWL = Longword
 			inst.Opcode = "mov"
-		} else if CH == 0x7 && CL == 0x8 && DL == 0x0 && EH == 0x6 && EL == 0xB && (FH == 0x2 || FH == 0xA) && FL < 0x7 {
+		} else if CH == 0x7 && CL == 0x8 && DH < 0x8 && DL == 0x0 && EH == 0x6 && EL == 0xB && (FH == 0x2 || FH == 0xA) && FL < 0x8 {
 			// 01 00 78 ?0 6B A? ?? ?? ?? ??
 			// 01 00 78 ?0 6B 2? ?? ?? ?? ??
 			// TODO: Potential bug in unidasm? should be checking `DH < 0x7` (p142/322)
@@ -478,12 +486,17 @@ func table232(inst Inst, bytes []byte) Inst {
 			inst.AddressingMode = RegisterIndirectWithPostIncrement
 			inst.BWL = Longword
 			inst.Opcode = "mov"
-		} else if CH == 0x6 && CL == 0xD && DH == 0x7 {
+		} else if CH == 0x6 && CL == 0xD && DH == 0x7 && DL < 0x8 {
 			inst.TotalBytes = 4
 			inst.BWL = Longword
 			inst.AddressingMode = RegisterIndirectWithPreDecrement
 			inst.Opcode = "pop"
-		} else if CH == 0x6 && CL == 0xD && DH == 0xF {
+		} else if CH == 0x6 && CL == 0xD && DH < 0x7 && DL < 0x8 {
+			inst.TotalBytes = 4
+			inst.BWL = Longword
+			inst.AddressingMode = RegisterIndirectWithPreDecrement
+			inst.Opcode = "mov"
+		} else if CH == 0x6 && CL == 0xD && DH == 0xF && DL < 0x8 {
 			inst.TotalBytes = 4
 			inst.BWL = Longword
 			inst.AddressingMode = RegisterIndirectWithPreDecrement
@@ -1226,7 +1239,7 @@ func table233(inst Inst, bytes []byte) Inst {
 					if CL == 0x0 {
 						inst.BWL = Byte
 						inst.Opcode = "mulxs"
-					} else if CL == 0x2 {
+					} else if CL == 0x2 && DL < 0x8 {
 						inst.BWL = Word
 						inst.Opcode = "mulxs"
 					}
