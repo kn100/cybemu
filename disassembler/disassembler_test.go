@@ -2443,6 +2443,167 @@ func TestDisassemblerRangeCases(t *testing.T) {
 			HLToBVA:        H,
 			Range:          zeroToSeven,
 		},
+		{
+			// 7A 2F 00 00 00 00
+			Input:          []byte{0x7A, 0x2F, 0x00, 0x00, 0x00},
+			ExpectedOpcode: "cmp",
+			ByteToBVA:      1,
+			HLToBVA:        L,
+			Range:          zeroToSeven,
+		},
+		{
+			// 1F F0
+			Input:          []byte{0x1F, 0xF0},
+			ExpectedOpcode: "cmp",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 1F FF
+			Input:          []byte{0x1F, 0xFF},
+			ExpectedOpcode: "cmp",
+			ByteToBVA:      1,
+			HLToBVA:        L,
+			Range:          zeroToSeven,
+		},
+		{
+			// 1B 7F
+			Input:          []byte{0x1B, 0x7F},
+			ExpectedOpcode: "dec",
+			ByteToBVA:      1,
+			HLToBVA:        L,
+			Range:          zeroToSeven,
+		},
+		{
+			// 1B FF
+			Input:          []byte{0x1B, 0xFF},
+			ExpectedOpcode: "dec",
+			ByteToBVA:      1,
+			HLToBVA:        L,
+			Range:          zeroToSeven,
+		},
+		{
+			// 01 D0 53 0F
+			Input:          []byte{0x01, 0xD0, 0x53, 0x0F},
+			ExpectedOpcode: "divxs",
+			ByteToBVA:      3,
+			HLToBVA:        L,
+			Range:          zeroToSeven,
+		},
+		{
+			// 53 0F
+			Input:          []byte{0x53, 0x0F},
+			ExpectedOpcode: "divxu",
+			ByteToBVA:      1,
+			HLToBVA:        L,
+			Range:          zeroToSeven,
+		},
+		{
+			// 17 FF
+			Input:          []byte{0x17, 0xFF},
+			ExpectedOpcode: "exts",
+			ByteToBVA:      1,
+			HLToBVA:        L,
+			Range:          zeroToSeven,
+		},
+		{
+			// 17 7F
+			Input:          []byte{0x17, 0x7F},
+			ExpectedOpcode: "extu",
+			ByteToBVA:      1,
+			HLToBVA:        L,
+			Range:          zeroToSeven,
+		},
+		{
+			// 0B 7F
+			Input:          []byte{0x0B, 0x7F},
+			ExpectedOpcode: "inc",
+			ByteToBVA:      1,
+			HLToBVA:        L,
+			Range:          zeroToSeven,
+		},
+		{
+			// 59 F0
+			Input:          []byte{0x59, 0xF0},
+			ExpectedOpcode: "jmp",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 5D F0
+			Input:          []byte{0x5D, 0xF0},
+			ExpectedOpcode: "jsr",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 01 40 69 F0
+			Input:          []byte{0x01, 0x40, 0x69, 0xF0},
+			ExpectedOpcode: "ldc",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 01 40 6F F0 00 00
+			Input:          []byte{0x01, 0x40, 0x6F, 0xF0, 0x00, 0x00},
+			ExpectedOpcode: "ldc",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 01 40 78 F0 6B 20 FF FF FF FF
+			Input:          []byte{0x01, 0x40, 0x78, 0xF0, 0x6B, 0x20, 0xFF, 0xFF, 0xFF, 0xFF},
+			ExpectedOpcode: "ldc",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 01 40 6D F0
+			Input:          []byte{0x01, 0x40, 0x6D, 0xF0},
+			ExpectedOpcode: "ldc",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		//exr cases
+		{
+			// 01 41 69 F0
+			Input:          []byte{0x01, 0x41, 0x69, 0xF0},
+			ExpectedOpcode: "ldc",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 01 41 6F F0 00 00
+			Input:          []byte{0x01, 0x41, 0x6F, 0xF0, 0x00, 0x00},
+			ExpectedOpcode: "ldc",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 01 41 78 F0 6B 20 FF FF FF FF
+			Input:          []byte{0x01, 0x41, 0x78, 0xF0, 0x6B, 0x20, 0xFF, 0xFF, 0xFF, 0xFF},
+			ExpectedOpcode: "ldc",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 01 41 6D F0
+			Input:          []byte{0x01, 0x41, 0x6D, 0xF0},
+			ExpectedOpcode: "ldc",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
 	}
 	for _, tc := range testCases {
 		// Decode expects the input to potentially be up to 10 bytes, and will

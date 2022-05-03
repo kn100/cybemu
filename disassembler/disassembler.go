@@ -515,13 +515,15 @@ func table232(inst Inst, bytes []byte) Inst {
 				}
 			} else if CH == 0x7 && CL == 0x8 && EH == 0x6 && EL == 0xB && (FH == 0xA || FH == 0x2) && FL == 0x0 {
 				// 01 40 78 ?? 6B A0
-				inst.TotalBytes = 10
-				inst.AddressingMode = RegisterIndirectWithDisplacement
-				inst.BWL = Word
-				if FH < 0xA {
-					inst.Opcode = "ldc"
-				} else {
-					inst.Opcode = "stc"
+				if DH < 0x8 {
+					inst.TotalBytes = 10
+					inst.AddressingMode = RegisterIndirectWithDisplacement
+					inst.BWL = Word
+					if FH < 0xA {
+						inst.Opcode = "ldc"
+					} else {
+						inst.Opcode = "stc"
+					}
 				}
 			} else if CH == 0x6 && CL == 0xD {
 				// 01 40 6D
@@ -604,13 +606,15 @@ func table232(inst Inst, bytes []byte) Inst {
 				}
 			} else if CH == 0x7 && CL == 0x8 && EH == 0x6 && EL == 0xB && (FH == 0xA || FH == 0x2) && FL == 0x0 {
 				// 01 41 78 ?? 6B A0
-				inst.TotalBytes = 10
-				inst.AddressingMode = RegisterIndirectWithDisplacement
-				inst.BWL = Word
-				if FH < 0xA {
-					inst.Opcode = "ldc"
-				} else {
-					inst.Opcode = "stc"
+				if DH < 0x8 {
+					inst.TotalBytes = 10
+					inst.AddressingMode = RegisterIndirectWithDisplacement
+					inst.BWL = Word
+					if FH < 0xA {
+						inst.Opcode = "ldc"
+					} else {
+						inst.Opcode = "stc"
+					}
 				}
 			} else if CH == 0x6 && CL == 0xD {
 				// 01 41 6D
@@ -856,7 +860,7 @@ func table232(inst Inst, bytes []byte) Inst {
 				inst.BWL = Word
 				inst.Opcode = "shar"
 			case 0xB:
-				if BL < 0x7 {
+				if BL < 0x8 {
 					inst.BWL = Longword
 					inst.Opcode = "shar"
 				}
@@ -998,7 +1002,7 @@ func table232(inst Inst, bytes []byte) Inst {
 				inst.BWL = Word
 				inst.Opcode = "exts"
 			case 0xF:
-				if BL < 0x7 {
+				if BL < 0x8 {
 					inst.BWL = Longword
 					inst.Opcode = "exts"
 				}
@@ -1040,7 +1044,7 @@ func table232(inst Inst, bytes []byte) Inst {
 				inst.Opcode = "das"
 			case 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF:
 				// 1F 8?, 1F 9?, 1F A?, 1F B?, 1F C?, 1F D?, 1F E?, 1F F?
-				if BL < 0x7 {
+				if BL < 0x8 {
 					inst.BWL = Longword
 					inst.Opcode = "cmp"
 				}
@@ -1235,8 +1239,10 @@ func table233(inst Inst, bytes []byte) Inst {
 						inst.BWL = Byte
 						inst.Opcode = "divxs"
 					case 0x3:
-						inst.BWL = Word
-						inst.Opcode = "divxs"
+						if DL < 0x8 {
+							inst.BWL = Word
+							inst.Opcode = "divxs"
+						}
 					}
 				}
 
