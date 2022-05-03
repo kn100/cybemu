@@ -1266,7 +1266,7 @@ func table233(inst Inst, bytes []byte) Inst {
 		inst.AddressingMode = RegisterIndirect
 		switch AL {
 		case 0xC:
-			if BL == 0x0 {
+			if BH < 0x8 && BL == 0x0 {
 				switch CH {
 				case 0x6:
 					if CL == 0x3 {
@@ -1307,8 +1307,11 @@ func table233(inst Inst, bytes []byte) Inst {
 				case 0x7:
 					switch CL {
 					case 0x0, 0x1, 0x2:
-						inst.TotalBytes = 4
-						inst.Opcode = bSetBNotBClr(CL)
+						if DH < 0x8 {
+							// 7D ?0 70 ?0, 7D ?0 71 ?0, 7D ?0 72 ?0
+							inst.TotalBytes = 4
+							inst.Opcode = bSetBNotBClr(CL)
+						}
 					}
 				}
 			}
@@ -1348,8 +1351,10 @@ func table233(inst Inst, bytes []byte) Inst {
 			case 0x7:
 				switch CL {
 				case 0x0, 0x1, 0x2:
-					inst.TotalBytes = 4
-					inst.Opcode = bSetBNotBClr(CL)
+					if DH < 0x8 {
+						inst.TotalBytes = 4
+						inst.Opcode = bSetBNotBClr(CL)
+					}
 				}
 			}
 		}
@@ -1416,8 +1421,11 @@ func table234(inst Inst, bytes []byte) Inst {
 				case 0x7:
 					switch EL {
 					case 0x0, 0x1, 0x2:
-						inst.TotalBytes = 6
-						inst.Opcode = bSetBNotBClr(EL)
+						// 6A 18 ?? ?? 72 ?0
+						if FH < 0x8 {
+							inst.TotalBytes = 6
+							inst.Opcode = bSetBNotBClr(EL)
+						}
 					}
 				}
 			}
@@ -1434,8 +1442,10 @@ func table234(inst Inst, bytes []byte) Inst {
 				case 0x7:
 					switch GL {
 					case 0x3, 0x4, 0x5, 0x6, 0x7:
+						// if HH < 0x8 {
 						inst.TotalBytes = 8
 						inst.Opcode = borBxorBandBld(GL, HH)
+						// }
 					}
 				}
 			case 0x8:
@@ -1456,8 +1466,11 @@ func table234(inst Inst, bytes []byte) Inst {
 				case 0x7:
 					switch GL {
 					case 0x0, 0x1, 0x2:
-						inst.TotalBytes = 8
-						inst.Opcode = bSetBNotBClr(GL)
+						// 6A 38 ?? ?? ?? ?? 72 ?0
+						if HH < 0x8 {
+							inst.TotalBytes = 8
+							inst.Opcode = bSetBNotBClr(GL)
+						}
 					}
 				}
 			}

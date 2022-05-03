@@ -1671,6 +1671,812 @@ func TestDisassembleTimsTestCases(t *testing.T) {
 	}
 }
 
+type HLToBVA int
+
+const (
+	H HLToBVA = iota
+	L
+)
+
+type Range int
+
+const (
+	zeroToSeven Range = iota
+	eightToF
+)
+
+// These tests ensure that instruction sequences take into account that
+// it is sometimes only valid if the registers in question are in a range.
+func TestDisassemblerRangeCases(t *testing.T) {
+	testCases := []struct {
+		Input          []byte
+		ExpectedOpcode string
+		ByteToBVA      int
+		HLToBVA        HLToBVA
+		Range          Range
+	}{
+		{
+			Input:          []byte{0x7A, 0x1F, 0x00, 0x00, 0x00, 0x00},
+			ExpectedOpcode: "add",
+			ByteToBVA:      1,
+			HLToBVA:        L,
+			Range:          zeroToSeven,
+		},
+		{
+			Input:          []byte{0x0A, 0xF0},
+			ExpectedOpcode: "add",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			Input:          []byte{0x0A, 0xF0},
+			ExpectedOpcode: "add",
+			ByteToBVA:      1,
+			HLToBVA:        L,
+			Range:          zeroToSeven,
+		},
+		{
+			Input:          []byte{0x0B, 0x0F},
+			ExpectedOpcode: "adds",
+			ByteToBVA:      1,
+			HLToBVA:        L,
+			Range:          zeroToSeven,
+		},
+		{
+			Input:          []byte{0x0B, 0x8F},
+			ExpectedOpcode: "adds",
+			ByteToBVA:      1,
+			HLToBVA:        L,
+			Range:          zeroToSeven,
+		},
+		{
+			Input:          []byte{0x0B, 0x9F},
+			ExpectedOpcode: "adds",
+			ByteToBVA:      1,
+			HLToBVA:        L,
+			Range:          zeroToSeven,
+		},
+		{
+			Input:          []byte{0x7a, 0x6F, 0x00, 0x00, 0x00, 0x00},
+			ExpectedOpcode: "and",
+			ByteToBVA:      1,
+			HLToBVA:        L,
+			Range:          zeroToSeven,
+		},
+		{
+			Input:          []byte{0x01, 0xF0, 0x66, 0xF0},
+			ExpectedOpcode: "and",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			Input:          []byte{0x01, 0xF0, 0x66, 0x0F},
+			ExpectedOpcode: "and",
+			ByteToBVA:      3,
+			HLToBVA:        L,
+			Range:          zeroToSeven,
+		},
+		{
+			Input:          []byte{0x76, 0xF0},
+			ExpectedOpcode: "band",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			Input:          []byte{0x7C, 0xF0, 0x76, 0x00},
+			ExpectedOpcode: "band",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			Input:          []byte{0x7C, 0x00, 0x76, 0x00},
+			ExpectedOpcode: "band",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			Input:          []byte{0x7E, 0x00, 0x76, 0x00},
+			ExpectedOpcode: "band",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			Input:          []byte{0x6A, 0x10, 0x00, 0x00, 0x76, 0xF0},
+			ExpectedOpcode: "band",
+			ByteToBVA:      5,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			Input:          []byte{0x6A, 0x30, 0x00, 0x00, 0x00, 0x00, 0x76, 0xF0},
+			ExpectedOpcode: "band",
+			ByteToBVA:      7,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			Input:          []byte{0x72, 0xF0},
+			ExpectedOpcode: "bclr",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			Input:          []byte{0x7D, 0xF0, 0x72, 0x00},
+			ExpectedOpcode: "bclr",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			Input:          []byte{0x7D, 0x00, 0x72, 0xF0},
+			ExpectedOpcode: "bclr",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			Input:          []byte{0x7F, 0x00, 0x72, 0xF0},
+			ExpectedOpcode: "bclr",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 6A 18 00 00 72 F0
+			Input:          []byte{0x6A, 0x18, 0x00, 0x00, 0x72, 0xF0},
+			ExpectedOpcode: "bclr",
+			ByteToBVA:      5,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 6A 38 00 00 00 00 72 F0
+			Input:          []byte{0x6A, 0x38, 0x00, 0x00, 0x00, 0x00, 0x72, 0xF0},
+			ExpectedOpcode: "bclr",
+			ByteToBVA:      7,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			Input:          []byte{0x7D, 0xF0, 0x62, 0x00},
+			ExpectedOpcode: "bclr",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 76 F0
+			Input:          []byte{0x76, 0xF0},
+			ExpectedOpcode: "biand",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 7C F0 76 D0
+			Input:          []byte{0x7C, 0xF0, 0x76, 0xD0},
+			ExpectedOpcode: "biand",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7C 00 76 F0
+			Input:          []byte{0x7C, 0x00, 0x76, 0xF0},
+			ExpectedOpcode: "biand",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 7E 00 76 F0
+			Input:          []byte{0x7E, 0x00, 0x76, 0xF0},
+			ExpectedOpcode: "biand",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 6A 10 00 00 76 F0
+			Input:          []byte{0x6A, 0x10, 0x00, 0x00, 0x76, 0xF0},
+			ExpectedOpcode: "biand",
+			ByteToBVA:      5,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 6A 30 00 00 00 00 76 F0
+			Input:          []byte{0x6A, 0x30, 0x00, 0x00, 0x00, 0x00, 0x76, 0xF0},
+			ExpectedOpcode: "biand",
+			ByteToBVA:      7,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 77 F0
+			Input:          []byte{0x77, 0xF0},
+			ExpectedOpcode: "bild",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 7C F0 77 F0
+			Input:          []byte{0x7C, 0xF0, 0x77, 0xF0},
+			ExpectedOpcode: "bild",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7C 00 77 F0
+			Input:          []byte{0x7C, 0x00, 0x77, 0xF0},
+			ExpectedOpcode: "bild",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 6A 10 00 00 77 F0
+			Input:          []byte{0x6A, 0x10, 0x00, 0x00, 0x77, 0xF0},
+			ExpectedOpcode: "bild",
+			ByteToBVA:      5,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 6A 30 00 00 00 00 77 F0
+			Input:          []byte{0x6A, 0x30, 0x00, 0x00, 0x00, 0x00, 0x77, 0xF0},
+			ExpectedOpcode: "bild",
+			ByteToBVA:      7,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 74 F0
+			Input:          []byte{0x74, 0xF0},
+			ExpectedOpcode: "bior",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 7C F0 74 F0
+			Input:          []byte{0x7C, 0xF0, 0x74, 0xF0},
+			ExpectedOpcode: "bior",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7C 00 74 F0
+			Input:          []byte{0x7C, 0x00, 0x74, 0xF0},
+			ExpectedOpcode: "bior",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 7E 00 74 F0
+			Input:          []byte{0x7E, 0x00, 0x74, 0xF0},
+			ExpectedOpcode: "bior",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 6A 10 00 00 74 F0
+			Input:          []byte{0x6A, 0x10, 0x00, 0x00, 0x74, 0xF0},
+			ExpectedOpcode: "bior",
+			ByteToBVA:      5,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 6A 30 00 00 00 00 74 F0
+			Input:          []byte{0x6A, 0x30, 0x00, 0x00, 0x00, 0x00, 0x74, 0xF0},
+			ExpectedOpcode: "bior",
+			ByteToBVA:      7,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 67 F0
+			Input:          []byte{0x67, 0xF0},
+			ExpectedOpcode: "bist",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 7D F0 67 F0
+			Input:          []byte{0x7D, 0xF0, 0x67, 0xF0},
+			ExpectedOpcode: "bist",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7D 00 67 F0
+			Input:          []byte{0x7D, 0x00, 0x67, 0xF0},
+			ExpectedOpcode: "bist",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 7F 00 67 F0
+			Input:          []byte{0x7F, 0x00, 0x67, 0xF0},
+			ExpectedOpcode: "bist",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 6A 18 00 00 67 F0
+			Input:          []byte{0x6A, 0x18, 0x00, 0x00, 0x67, 0xF0},
+			ExpectedOpcode: "bist",
+			ByteToBVA:      5,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 6A 38 00 00 00 00 67 F0
+			Input:          []byte{0x6A, 0x38, 0x00, 0x00, 0x00, 0x00, 0x67, 0xF0},
+			ExpectedOpcode: "bist",
+			ByteToBVA:      7,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 75 F0
+			Input:          []byte{0x75, 0xF0},
+			ExpectedOpcode: "bixor",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 7C F0 75 F0
+			Input:          []byte{0x7C, 0xF0, 0x75, 0xF0},
+			ExpectedOpcode: "bixor",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7C 00 75 F0
+			Input:          []byte{0x7C, 0x00, 0x75, 0xF0},
+			ExpectedOpcode: "bixor",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 7E 00 75 F0
+			Input:          []byte{0x7E, 0x00, 0x75, 0xF0},
+			ExpectedOpcode: "bixor",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 6A 10 00 00 75 F0
+			Input:          []byte{0x6A, 0x10, 0x00, 0x00, 0x75, 0xF0},
+			ExpectedOpcode: "bixor",
+			ByteToBVA:      5,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 6A 30 00 00 00 00 75 F0
+			Input:          []byte{0x6A, 0x30, 0x00, 0x00, 0x00, 0x00, 0x75, 0xF0},
+			ExpectedOpcode: "bixor",
+			ByteToBVA:      7,
+			HLToBVA:        H,
+			Range:          eightToF,
+		},
+		{
+			// 77 ?0
+			Input:          []byte{0x77, 0x00},
+			ExpectedOpcode: "bld",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7C F0 77 00
+			Input:          []byte{0x7C, 0xF0, 0x77, 0x00},
+			ExpectedOpcode: "bld",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7C 00 77 F0
+			Input:          []byte{0x7C, 0x00, 0x77, 0xF0},
+			ExpectedOpcode: "bld",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7E 00 77 F0
+			Input:          []byte{0x7E, 0x00, 0x77, 0xF0},
+			ExpectedOpcode: "bld",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 6A 10 00 00 77 F0
+			Input:          []byte{0x6A, 0x10, 0x00, 0x00, 0x77, 0xF0},
+			ExpectedOpcode: "bld",
+			ByteToBVA:      5,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 6A 30 00 00 00 00 77 F0
+			Input:          []byte{0x6A, 0x30, 0x00, 0x00, 0x00, 0x00, 0x77, 0xF0},
+			ExpectedOpcode: "bld",
+			ByteToBVA:      7,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 71 F0
+			Input:          []byte{0x71, 0xF0},
+			ExpectedOpcode: "bnot",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7D F0 71 00
+			Input:          []byte{0x7D, 0xF0, 0x71, 0x00},
+			ExpectedOpcode: "bnot",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7D 00 71 F0
+			Input:          []byte{0x7D, 0x00, 0x71, 0xF0},
+			ExpectedOpcode: "bnot",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7F 00 71 F0
+			Input:          []byte{0x7F, 0x00, 0x71, 0xF0},
+			ExpectedOpcode: "bnot",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 6A 18 00 00 71 F0
+			Input:          []byte{0x6A, 0x18, 0x00, 0x00, 0x71, 0xF0},
+			ExpectedOpcode: "bnot",
+			ByteToBVA:      5,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 6A 38 00 00 00 00 71 F0
+			Input:          []byte{0x6A, 0x38, 0x00, 0x00, 0x00, 0x00, 0x71, 0xF0},
+			ExpectedOpcode: "bnot",
+			ByteToBVA:      7,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7D F0 61 00
+			Input:          []byte{0x7D, 0xF0, 0x61, 0x00},
+			ExpectedOpcode: "bnot",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 74 F0
+			Input:          []byte{0x74, 0xF0},
+			ExpectedOpcode: "bor",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7C F0 74 00
+			Input:          []byte{0x7C, 0xF0, 0x74, 0x00},
+			ExpectedOpcode: "bor",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7C 00 74 F0
+			Input:          []byte{0x7C, 0x00, 0x74, 0xF0},
+			ExpectedOpcode: "bor",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7E 00 74 F0
+			Input:          []byte{0x7E, 0x00, 0x74, 0xF0},
+			ExpectedOpcode: "bor",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 6A 10 00 00 74 F0
+			Input:          []byte{0x6A, 0x10, 0x00, 0x00, 0x74, 0xF0},
+			ExpectedOpcode: "bor",
+			ByteToBVA:      5,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 6A 30 00 00 00 00 74 F0
+			Input:          []byte{0x6A, 0x30, 0x00, 0x00, 0x00, 0x00, 0x74, 0xF0},
+			ExpectedOpcode: "bor",
+			ByteToBVA:      7,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 70 F0
+			Input:          []byte{0x70, 0xF0},
+			ExpectedOpcode: "bset",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7D F0 70 00
+			Input:          []byte{0x7D, 0xF0, 0x70, 0x00},
+			ExpectedOpcode: "bset",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7D 00 70 F0
+			Input:          []byte{0x7D, 0x00, 0x70, 0xF0},
+			ExpectedOpcode: "bset",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7F 00 70 F0
+			Input:          []byte{0x7F, 0x00, 0x70, 0xF0},
+			ExpectedOpcode: "bset",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 6A 18 00 00 70 F0
+			Input:          []byte{0x6A, 0x18, 0x00, 0x00, 0x70, 0xF0},
+			ExpectedOpcode: "bset",
+			ByteToBVA:      5,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 6A 38 00 00 00 00 70 F0
+			Input:          []byte{0x6A, 0x38, 0x00, 0x00, 0x00, 0x00, 0x70, 0xF0},
+			ExpectedOpcode: "bset",
+			ByteToBVA:      7,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7D F0 60 00
+			Input:          []byte{0x7D, 0xF0, 0x60, 0x00},
+			ExpectedOpcode: "bset",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 67 F0
+			Input:          []byte{0x67, 0xF0},
+			ExpectedOpcode: "bst",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7D F0 67 00
+			Input:          []byte{0x7D, 0xF0, 0x67, 0x00},
+			ExpectedOpcode: "bst",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7D 00 67 F0
+			Input:          []byte{0x7D, 0x00, 0x67, 0xF0},
+			ExpectedOpcode: "bst",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7F 00 67 F0
+			Input:          []byte{0x7F, 0x00, 0x67, 0xF0},
+			ExpectedOpcode: "bst",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 6A 18 00 00 67 F0
+			Input:          []byte{0x6A, 0x18, 0x00, 0x00, 0x67, 0xF0},
+			ExpectedOpcode: "bst",
+			ByteToBVA:      5,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 6A 38 00 00 00 00 67 F0
+			Input:          []byte{0x6A, 0x38, 0x00, 0x00, 0x00, 0x00, 0x67, 0xF0},
+			ExpectedOpcode: "bst",
+			ByteToBVA:      7,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 73 F0
+			Input:          []byte{0x73, 0xF0},
+			ExpectedOpcode: "btst",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7C F0 73 00
+			Input:          []byte{0x7C, 0xF0, 0x73, 0x00},
+			ExpectedOpcode: "btst",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7C 00 73 F0
+			Input:          []byte{0x7C, 0x00, 0x73, 0xF0},
+			ExpectedOpcode: "btst",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7E 00 73 F0
+			Input:          []byte{0x7E, 0x00, 0x73, 0xF0},
+			ExpectedOpcode: "btst",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 6A 10 00 00 73 F0
+			Input:          []byte{0x6A, 0x10, 0x00, 0x00, 0x73, 0xF0},
+			ExpectedOpcode: "btst",
+			ByteToBVA:      5,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 6A 30 00 00 00 00 73 F0
+			Input:          []byte{0x6A, 0x30, 0x00, 0x00, 0x00, 0x00, 0x73, 0xF0},
+			ExpectedOpcode: "btst",
+			ByteToBVA:      7,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7C F0 63 00
+			Input:          []byte{0x7C, 0xF0, 0x63, 0x00},
+			ExpectedOpcode: "btst",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 75 F0
+			Input:          []byte{0x75, 0xF0},
+			ExpectedOpcode: "bxor",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7C F0 75 00
+			Input:          []byte{0x7C, 0xF0, 0x75, 0x00},
+			ExpectedOpcode: "bxor",
+			ByteToBVA:      1,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7C 00 75 F0
+			Input:          []byte{0x7C, 0x00, 0x75, 0xF0},
+			ExpectedOpcode: "bxor",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 7E 00 75 F0
+			Input:          []byte{0x7E, 0x00, 0x75, 0xF0},
+			ExpectedOpcode: "bxor",
+			ByteToBVA:      3,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 6A 10 00 00 75 F0
+			Input:          []byte{0x6A, 0x10, 0x00, 0x00, 0x75, 0xF0},
+			ExpectedOpcode: "bxor",
+			ByteToBVA:      5,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+		{
+			// 6A 30 00 00 00 00 75 F0
+			Input:          []byte{0x6A, 0x30, 0x00, 0x00, 0x00, 0x00, 0x75, 0xF0},
+			ExpectedOpcode: "bxor",
+			ByteToBVA:      7,
+			HLToBVA:        H,
+			Range:          zeroToSeven,
+		},
+	}
+	for _, tc := range testCases {
+		// Decode expects the input to potentially be up to 10 bytes, and will
+		// panic if provided with less and it's decoding incorrectly. To get
+		// nicer errors, we pad here.
+		paddedInput := make([]byte, 10)
+		copy(paddedInput, tc.Input)
+		valsToTest := []byte{0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF}
+		validRangeL := 0
+		validRangeR := 7
+		if tc.Range == eightToF {
+			validRangeL = 8
+			validRangeR = 15
+		}
+		for _, b := range valsToTest {
+			if tc.HLToBVA == L {
+				// Replace last 4 bits of paddedInput[ByteToBVA] with b
+				paddedInput[tc.ByteToBVA] = paddedInput[tc.ByteToBVA]&0xF0 | b
+			} else {
+				// Replace first 4 bits of paddedInput[ByteToBVA] with b
+				paddedInput[tc.ByteToBVA] = paddedInput[tc.ByteToBVA]&0x0F | b<<4
+			}
+
+			inst := disassembler.Decode(paddedInput)
+			if int(b) >= validRangeL && int(b) <= validRangeR {
+				// If it's in the range we expect to be successful, test it and check opcode is what we wanted
+				assert.Equal(t, tc.ExpectedOpcode, inst.Opcode, fmt.Sprintf("For byte sequence %x, expected opcode %s, got %s\n", paddedInput, tc.ExpectedOpcode, inst.Opcode))
+			} else {
+				assert.NotEqual(t, tc.ExpectedOpcode, inst.Opcode, fmt.Sprintf("For byte sequence %x, expected opcode not to be %s\n", paddedInput, tc.ExpectedOpcode))
+			}
+		}
+	}
+}
+
 func BWLToString(bwl disassembler.Size) string {
 	switch bwl {
 	case disassembler.Byte:
