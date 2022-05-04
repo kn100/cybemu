@@ -22,8 +22,8 @@ jobs:
       run: go build -v ./...
     - name: Test
       run: go test -v ./...
-    - name: Coverage
     - run: go test -v -coverprofile=profile.cov ./...
-    - uses: shogo82148/actions-goveralls@v1
+    - name: Send coverage
+      uses: shogo82148/actions-goveralls@v1
       with:
         path-to-profile: profile.cov
