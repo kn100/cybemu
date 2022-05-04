@@ -62,7 +62,7 @@ func Disassemble(bytes []byte) []Inst {
 			inst.Bytes = append(inst.Bytes, bytes[i+b])
 		}
 		if inst.Opcode == ".word" && (inst.TotalBytes != 2 || inst.BWL != Unset || inst.AddressingMode != None) {
-			fmt.Printf("STATE LEAK! Pos: %04x\n", inst.Pos)
+			panic(fmt.Sprintf("STATE LEAK! Pos: %04x\n", inst.Pos))
 		}
 		instructions = append(instructions, inst)
 		i = i + inst.TotalBytes
