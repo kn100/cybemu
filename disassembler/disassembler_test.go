@@ -10,7 +10,60 @@ import (
 
 // TestDisassembleTimsTestCases Tests the disassembler against Tim's test cases.
 // It's a useful test to determine every possible instruction decodes correctly.
-func TestDisassembleTimsTestCases(t *testing.T) {
+
+func TestDisassemble(t *testing.T) {
+	testCases := []struct {
+		Bytes         []byte
+		ExpectedInsts []disassembler.Inst
+	}{
+		{
+			Bytes: []byte{0x00, 0x00, 0x00, 0x00},
+			ExpectedInsts: []disassembler.Inst{
+				{Opcode: "nop", Bytes: []byte{0x00, 0x00}, TotalBytes: 2},
+				{Opcode: "nop", Bytes: []byte{0x00, 0x00}, TotalBytes: 2, Pos: 2},
+			},
+		},
+		{
+			Bytes: []byte{0x8D, 0x81,
+				0x79, 0x6C, 0x26, 0x94,
+				0x01, 0x00, 0x78, 0x70, 0x6B, 0x23, 0x00, 0x00, 0x27, 0x0E},
+			ExpectedInsts: []disassembler.Inst{
+				{
+					Opcode:         "add",
+					Bytes:          []byte{0x8D, 0x81},
+					TotalBytes:     2,
+					BWL:            disassembler.Byte,
+					AddressingMode: disassembler.Immediate,
+					Pos:            0,
+				},
+				{
+					Opcode:         "and",
+					Bytes:          []byte{0x79, 0x6C, 0x26, 0x94},
+					TotalBytes:     4,
+					BWL:            disassembler.Word,
+					AddressingMode: disassembler.Immediate,
+					Pos:            2,
+				},
+				{
+					Opcode:         "mov",
+					Bytes:          []byte{0x01, 0x00, 0x78, 0x70, 0x6B, 0x23, 0x00, 0x00, 0x27, 0x0E},
+					TotalBytes:     10,
+					BWL:            disassembler.Longword,
+					AddressingMode: disassembler.RegisterIndirectWithDisplacement,
+					Pos:            6,
+				},
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("%v", tc.Bytes), func(t *testing.T) {
+			insts := disassembler.Disassemble(tc.Bytes)
+			assert.Equal(t, tc.ExpectedInsts, insts)
+		})
+	}
+}
+
+func TestDecodeTimsTestCases(t *testing.T) {
 	testCases := []struct {
 		Input                  []byte
 		ExpectedOpcode         string
@@ -398,6 +451,10 @@ func TestDisassembleTimsTestCases(t *testing.T) {
 			ExpectedOpcode: "bset",
 		},
 		{
+			Input:          []byte{0x55, 0x00},
+			ExpectedOpcode: "bsr",
+		},
+		{
 			Input:          []byte{0x5C, 0x00, 0xFF, 0x7A},
 			ExpectedOpcode: "bsr",
 		},
@@ -761,6 +818,11 @@ func TestDisassembleTimsTestCases(t *testing.T) {
 			expectedBWL:    disassembler.Word,
 		},
 		{
+			Input:          []byte{0x6D, 0x40},
+			ExpectedOpcode: "mov",
+			expectedBWL:    disassembler.Word,
+		},
+		{
 			Input:          []byte{0x6D, 0x70},
 			ExpectedOpcode: "pop",
 			expectedBWL:    disassembler.Word,
@@ -787,6 +849,11 @@ func TestDisassembleTimsTestCases(t *testing.T) {
 		},
 		{
 			Input:          []byte{0x78, 0x60, 0x6B, 0xAD, 0x00, 0x00, 0x27, 0x10},
+			ExpectedOpcode: "mov",
+			expectedBWL:    disassembler.Word,
+		},
+		{
+			Input:          []byte{0x6D, 0xD0},
 			ExpectedOpcode: "mov",
 			expectedBWL:    disassembler.Word,
 		},
@@ -1697,7 +1764,7 @@ const (
 
 // These tests ensure that instruction sequences take into account that
 // it is sometimes only valid if the registers in question are in a range.
-func TestDisassemblerRangeCases(t *testing.T) {
+func TestDecodeRangeCases(t *testing.T) {
 	ranges := map[Range][]int{
 		zeroToSeven: {0x0, 0x7},
 		eightToF:    {0x8, 0xF},

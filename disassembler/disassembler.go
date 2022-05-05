@@ -49,23 +49,16 @@ func Disassemble(bytes []byte) []Inst {
 
 	i := 0
 	for i < len(bytes) {
-		// If we have less than 2 bytes left, we are done
-		if i+2 > len(bytes) {
-			break
-		}
-
 		inst := Decode(bytes[i:])
 		inst.Pos = i
-		i = i + inst.TotalBytes
 
 		for b := 0; b < inst.TotalBytes; b++ {
 			inst.Bytes = append(inst.Bytes, bytes[i+b])
 		}
-		if inst.Opcode == ".word" && (inst.TotalBytes != 2 || inst.BWL != Unset || inst.AddressingMode != None) {
-			panic(fmt.Sprintf("STATE LEAK! Pos: %04x\n", inst.Pos))
-		}
+
 		instructions = append(instructions, inst)
 		i = i + inst.TotalBytes
+		fmt.Println(i)
 	}
 	return instructions
 }
@@ -481,11 +474,6 @@ func table232(inst Inst, bytes []byte) Inst {
 				inst.BWL = Longword
 				inst.Opcode = "mov"
 			}
-		} else if CH == 0x6 && CL == 0xE {
-			inst.TotalBytes = 6
-			inst.AddressingMode = RegisterIndirectWithPostIncrement
-			inst.BWL = Longword
-			inst.Opcode = "mov"
 		} else if CH == 0x6 && CL == 0xD && DH == 0x7 && DL < 0x8 {
 			inst.TotalBytes = 4
 			inst.BWL = Longword
@@ -585,16 +573,6 @@ func table232(inst Inst, bytes []byte) Inst {
 					inst.OperandSize = 32
 				}
 
-			} else if CH == 0x6 && CL == 0xB && DH == 0xA {
-				// 01 40 6B A
-				inst.TotalBytes = 8
-				inst.AddressingMode = AbsoluteAddress
-				inst.BWL = Word
-				if DH < 0x8 {
-					inst.Opcode = "ldc"
-				} else {
-					inst.Opcode = "stc"
-				}
 			}
 		} else if BL == 0x1 {
 			if CH == 0x6 && CL == 0x9 {
@@ -675,16 +653,6 @@ func table232(inst Inst, bytes []byte) Inst {
 					inst.OperandSize = 32
 				}
 
-			} else if CH == 0x6 && CL == 0xB && DH == 0xA {
-				// 01 41 6B A
-				inst.TotalBytes = 8
-				inst.AddressingMode = AbsoluteAddress
-				inst.BWL = Word
-				if DH < 0x8 {
-					inst.Opcode = "ldc"
-				} else {
-					inst.Opcode = "stc"
-				}
 			} else if CH == 0x0 && CL == 0x7 {
 				// 01 41 07
 				inst.TotalBytes = 4
@@ -1124,11 +1092,7 @@ func table232(inst Inst, bytes []byte) Inst {
 				inst.BWL = Word
 				inst.Opcode = "sub"
 			case 0x4, 0x5, 0x6:
-				if AL == 0x9 {
-					inst.BWL = Word
-				} else if AL == 0xA {
-					inst.BWL = Longword
-				}
+				inst.BWL = Word
 				inst.Opcode = orXorAnd(BH, false)
 			}
 		case 0xA:
@@ -1147,19 +1111,11 @@ func table232(inst Inst, bytes []byte) Inst {
 					inst.BWL = Longword
 					inst.Opcode = "cmp"
 				case 0x3:
-
 					inst.BWL = Longword
 					inst.Opcode = "sub"
 				case 0x4, 0x5, 0x6:
-					if AL == 0x9 {
-						inst.BWL = Word
-					} else if AL == 0xA {
-						inst.BWL = Longword
-						if BL < 0x8 {
-							inst.Opcode = orXorAnd(BH, false)
-						}
-					}
-
+					inst.BWL = Longword
+					inst.Opcode = orXorAnd(BH, false)
 				}
 			}
 		case 0xC:
@@ -1276,11 +1232,6 @@ func table233(inst Inst, bytes []byte) Inst {
 			}
 		}
 
-	case 0xF:
-		if BL == 0x0 && CH == 0x6 && CL == 0x4 || CL == 0x5 || CL == 0x6 {
-			// Todo?
-			inst.Opcode = orXorAnd(CL, false)
-		}
 	case 0x7:
 		inst.AddressingMode = RegisterIndirect
 		switch AL {
@@ -1335,17 +1286,13 @@ func table233(inst Inst, bytes []byte) Inst {
 				}
 			}
 		case 0xE:
-			inst.AddressingMode = AbsoluteAddress
 			switch CH {
-			case 0x6:
-				if CL == 0x3 {
-					inst.Opcode = "btst"
-				}
 			case 0x7:
 				switch CL {
 				case 0x3, 0x4, 0x5, 0x6, 0x7:
 					// 7E ?? 73, 7E ?? 74, 7E ?? 75, 7E ?? 76, 7E ?? 77
 					inst.TotalBytes = 4
+					inst.AddressingMode = AbsoluteAddress
 					inst.Opcode = borBxorBandBld(CL, DH)
 				}
 			}
@@ -1562,12 +1509,10 @@ func borBxorBandBld(b byte, CB byte) string {
 		if val, ok := nm[b]; ok {
 			return val
 		}
-		return ".word"
-
 	} else {
 		if val, ok := m[b]; ok {
 			return val
 		}
-		return ".word"
 	}
+	return ".word"
 }
