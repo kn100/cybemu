@@ -10,7 +10,6 @@ import (
 
 // TestDisassembleTimsTestCases Tests the disassembler against Tim's test cases.
 // It's a useful test to determine every possible instruction decodes correctly.
-
 func TestDisassemble(t *testing.T) {
 	testCases := []struct {
 		Bytes         []byte

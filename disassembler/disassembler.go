@@ -1,8 +1,9 @@
+// disassembler contains utilities to disassemble a binary for the Renesas
+// (Previously Hitachi) h8s/2000 class CPUs. It is being developed as a part of
+// a larger project to emulate the Cybiko Classic. It roughly follows the layout
+// of the tables found in "H8S/2600 Series, H8S/2000 Series Software Manual
+// Rev.4.00 2006.02", Section 2.5 Table 2.3 (p274-277).
 package disassembler
-
-import (
-	"fmt"
-)
 
 // AddressingMode describes the addressing modes the H8S2000 supports.
 type AddressingMode int64
@@ -44,6 +45,8 @@ type Inst struct {
 	OperandSize    int // Bits
 }
 
+// Disassemble takes a sequence of bytes from a compiled binary and disassembles
+// them. It will return a slice of Inst.
 func Disassemble(bytes []byte) []Inst {
 	instructions := []Inst{}
 
@@ -58,11 +61,17 @@ func Disassemble(bytes []byte) []Inst {
 
 		instructions = append(instructions, inst)
 		i = i + inst.TotalBytes
-		fmt.Println(i)
 	}
 	return instructions
 }
 
+// Decode takes a sequence of bytes, and returns the very first valid
+// instruction found in the sequence. TotalBytes can be used to determine the
+// end of the instruction, and therefore how many bytes passed were read. You
+// can then call Decode again with those bytes to get the next instruction. The
+// instructions specifically implemented here roughly follow p274 (see package
+// comment), but will call the functions required to decode instructions found
+// in the other tables too.
 func Decode(bytes []byte) Inst {
 	AH := bytes[0] >> 4
 	AL := bytes[0] & 0x0F
@@ -293,11 +302,13 @@ func Decode(bytes []byte) Inst {
 		case 0xC:
 			if BH > 0x7 {
 				inst.AddressingMode = RegisterIndirectWithPreDecrement
+				inst.BWL = Byte
+				inst.Opcode = "mov"
 			} else {
 				inst.AddressingMode = RegisterIndirectWithPostIncrement
+				inst.BWL = Byte
+				inst.Opcode = "mov"
 			}
-			inst.BWL = Byte
-			inst.Opcode = "mov"
 		case 0xE:
 			inst.Opcode = "mov"
 			inst.TotalBytes = 4
@@ -365,19 +376,19 @@ func Decode(bytes []byte) Inst {
 		case 0x8:
 			BL := bytes[1] & 0x0F
 			CH := bytes[2] >> 4
-			if BH < 0x8 && BL == 0x0 && CH == 0x6 {
-				CL := bytes[2] & 0x0F
-				DH := bytes[3] >> 4
+			CL := bytes[2] & 0x0F
+			DH := bytes[3] >> 4
+			if BH < 0x8 && BL == 0x0 && CH == 0x6 && (DH == 0x2 || DH == 0xA) {
 				if CL == 0xA {
-					inst.BWL = Byte
-				} else if CL == 0xB {
-					inst.BWL = Word
-				}
-
-				if DH == 0x2 || DH == 0xA {
 					inst.AddressingMode = RegisterIndirectWithDisplacement
 					inst.TotalBytes = 8
 					inst.Opcode = "mov"
+					inst.BWL = Byte
+				} else if CL == 0xB {
+					inst.AddressingMode = RegisterIndirectWithDisplacement
+					inst.TotalBytes = 8
+					inst.Opcode = "mov"
+					inst.BWL = Word
 				}
 			}
 		case 0x9, 0xA, 0xC, 0xD, 0xE, 0xF:
@@ -424,10 +435,10 @@ func Decode(bytes []byte) Inst {
 		inst.AddressingMode = Immediate
 		inst.Opcode = "mov"
 	}
+
 	return inst
 }
 
-// Table 2.3 (2) - returns the instruction, and the size of the instruction (2 or 4 bytes)
 func table232(inst Inst, bytes []byte) Inst {
 	AH := bytes[0] >> 4
 	AL := bytes[0] & 0x0F
@@ -458,6 +469,7 @@ func table232(inst Inst, bytes []byte) Inst {
 			// 01 00 78 ?0 6B A? ?? ?? ?? ??
 			// 01 00 78 ?0 6B 2? ?? ?? ?? ??
 			// TODO: Potential bug in unidasm? should be checking `DH < 0x7` (p142/322)
+			// Turns out the real hardware doesn't care what DH is so just set it to zero.
 			inst.TotalBytes = 10
 			inst.AddressingMode = RegisterIndirectWithDisplacement
 			inst.BWL = Longword
@@ -493,7 +505,6 @@ func table232(inst Inst, bytes []byte) Inst {
 	}
 	if AH == 0x0 && AL == 0x1 && BH == 0x4 {
 		if BL == 0x0 {
-			// TODO: Potentially missing an ORC here? (p166/322)
 			if CH == 0x6 && CL == 0x9 {
 				// 01 40 69
 				inst.TotalBytes = 4
@@ -514,32 +525,28 @@ func table232(inst Inst, bytes []byte) Inst {
 				} else {
 					inst.Opcode = "stc"
 				}
-			} else if CH == 0x7 && CL == 0x8 && EH == 0x6 && EL == 0xB && (FH == 0xA || FH == 0x2) && FL == 0x0 {
+			} else if CH == 0x7 && CL == 0x8 && DH < 0x8 && EH == 0x6 && EL == 0xB && (FH == 0xA || FH == 0x2) && FL == 0x0 {
 				// 01 40 78 ?? 6B A0
-				if DH < 0x8 {
-					inst.TotalBytes = 10
-					inst.AddressingMode = RegisterIndirectWithDisplacement
-					inst.BWL = Word
-					if FH < 0xA {
-						inst.Opcode = "ldc"
-					} else {
-						inst.Opcode = "stc"
-					}
+				inst.TotalBytes = 10
+				inst.AddressingMode = RegisterIndirectWithDisplacement
+				inst.BWL = Word
+				if FH < 0xA {
+					inst.Opcode = "ldc"
+				} else {
+					inst.Opcode = "stc"
 				}
 			} else if CH == 0x6 && CL == 0xD {
 				// 01 40 6D
 				inst.TotalBytes = 4
+				inst.BWL = Word
 				if DH > 0x7 {
 					inst.AddressingMode = RegisterIndirectWithPreDecrement
+					inst.Opcode = "stc"
+
 				} else {
 					inst.AddressingMode = RegisterIndirectWithPostIncrement
-				}
-
-				inst.BWL = Word
-				if DH < 0x8 {
 					inst.Opcode = "ldc"
-				} else {
-					inst.Opcode = "stc"
+					inst.BWL = Word
 				}
 			} else if CH == 0x6 && CL == 0xB && DL == 0x0 {
 				switch DH {
@@ -595,31 +602,28 @@ func table232(inst Inst, bytes []byte) Inst {
 				} else {
 					inst.Opcode = "stc"
 				}
-			} else if CH == 0x7 && CL == 0x8 && EH == 0x6 && EL == 0xB && (FH == 0xA || FH == 0x2) && FL == 0x0 {
+			} else if CH == 0x7 && CL == 0x8 && DH < 0x8 && EH == 0x6 && EL == 0xB && (FH == 0xA || FH == 0x2) && FL == 0x0 {
 				// 01 41 78 ?? 6B A0
-				if DH < 0x8 {
-					inst.TotalBytes = 10
-					inst.AddressingMode = RegisterIndirectWithDisplacement
-					inst.BWL = Word
-					if FH < 0xA {
-						inst.Opcode = "ldc"
-					} else {
-						inst.Opcode = "stc"
-					}
-				}
-			} else if CH == 0x6 && CL == 0xD {
-				// 01 41 6D
-				inst.TotalBytes = 4
-				if DH > 0x7 {
-					inst.AddressingMode = RegisterIndirectWithPreDecrement
-				} else {
-					inst.AddressingMode = RegisterIndirectWithPostIncrement
-				}
+				inst.TotalBytes = 10
+				inst.AddressingMode = RegisterIndirectWithDisplacement
 				inst.BWL = Word
-				if DH < 0x8 {
+				if FH < 0xA {
 					inst.Opcode = "ldc"
 				} else {
 					inst.Opcode = "stc"
+				}
+			} else if CH == 0x6 && CL == 0xD {
+				// 01 41 6D
+				if DH > 0x7 {
+					inst.TotalBytes = 4
+					inst.BWL = Word
+					inst.AddressingMode = RegisterIndirectWithPreDecrement
+					inst.Opcode = "stc"
+				} else {
+					inst.TotalBytes = 4
+					inst.BWL = Word
+					inst.AddressingMode = RegisterIndirectWithPostIncrement
+					inst.Opcode = "ldc"
 				}
 			} else if CH == 0x6 && CL == 0xB && DL == 0x0 {
 				switch DH {
@@ -652,7 +656,6 @@ func table232(inst Inst, bytes []byte) Inst {
 					inst.Opcode = "stc"
 					inst.OperandSize = 32
 				}
-
 			} else if CH == 0x0 && CL == 0x7 {
 				// 01 41 07
 				inst.TotalBytes = 4
@@ -712,94 +715,107 @@ func table232(inst Inst, bytes []byte) Inst {
 				inst = table233(inst, bytes)
 			}
 		case 0xA:
-			inst.AddressingMode = RegisterDirect
 			switch BH {
 			case 0x0:
+				inst.AddressingMode = RegisterDirect
 				inst.BWL = Byte
 				inst.Opcode = "inc"
 			case 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF:
 				if BL < 0x8 {
+					inst.AddressingMode = RegisterDirect
 					inst.Opcode = "add"
 					inst.BWL = Longword
 				}
 
 			}
 		case 0xB:
-			inst.AddressingMode = RegisterDirect
 			switch BH {
 			case 0x0, 0x8, 0x9:
-				// 0B B0
-				// 0B B8
-				// 0B B9
+				// 0B B0, 0B B8, 0B B9
 				if BL < 0x8 {
+					inst.AddressingMode = RegisterDirect
 					inst.Opcode = "adds"
 				}
 			case 0x5, 0xD:
+				inst.AddressingMode = RegisterDirect
 				inst.BWL = Word
 				inst.Opcode = "inc"
 			case 0x7, 0xF:
 				if BL < 0x8 {
+					inst.AddressingMode = RegisterDirect
 					inst.BWL = Longword
 					inst.Opcode = "inc"
 				}
 			}
 		case 0xF:
-			inst.AddressingMode = RegisterDirect
 			if BH > 0x7 && BL < 0x8 {
+				inst.AddressingMode = RegisterDirect
 				inst.BWL = Longword
 				inst.Opcode = "mov"
 			} else if BH == 0x0 {
+				inst.AddressingMode = RegisterDirect
 				inst.Opcode = "daa"
 			}
 		}
 	case 0x1:
-		inst.AddressingMode = RegisterDirect
 		switch AL {
 		case 0x0:
 			switch BH {
 			case 0x0:
+				inst.AddressingMode = RegisterDirect
 				inst.BWL = Byte
 				inst.Opcode = "shll"
 			case 0x4:
+				inst.AddressingMode = RegisterDirect
 				inst.BWL = Byte
 				inst.Opcode = "shll"
 			case 0x1:
+				inst.AddressingMode = RegisterDirect
 				inst.BWL = Word
 				inst.Opcode = "shll"
 			case 0x5:
+				inst.AddressingMode = RegisterDirect
 				inst.BWL = Word
 				inst.Opcode = "shll"
 			case 0x3:
 				if BL < 0x8 {
+					inst.AddressingMode = RegisterDirect
 					inst.BWL = Longword
 					inst.Opcode = "shll"
 				}
 
 			case 0x7:
 				if BL < 0x8 {
+					inst.AddressingMode = RegisterDirect
 					inst.BWL = Longword
 					inst.Opcode = "shll"
 				}
 			case 0x8:
+				inst.AddressingMode = RegisterDirect
 				inst.BWL = Byte
 				inst.Opcode = "shal"
 			case 0xC:
+				inst.AddressingMode = RegisterDirect
 				inst.BWL = Byte
 				inst.Opcode = "shal"
 			case 0x9:
+				inst.AddressingMode = RegisterDirect
 				inst.BWL = Word
 				inst.Opcode = "shal"
 			case 0xD:
+				inst.AddressingMode = RegisterDirect
 				inst.BWL = Word
 				inst.Opcode = "shal"
 			case 0xB:
 				if BL < 0x8 {
+					inst.AddressingMode = RegisterDirect
 					inst.BWL = Longword
 					inst.Opcode = "shal"
 				}
 
 			case 0xF:
 				if BL < 0x8 {
+					inst.AddressingMode = RegisterDirect
 					inst.BWL = Longword
 					inst.Opcode = "shal"
 				}
@@ -1002,8 +1018,6 @@ func table232(inst Inst, bytes []byte) Inst {
 		case 0xB:
 			switch BH {
 			case 0x0, 0x8, 0x9:
-				// TODO: Leak above, address
-				inst.BWL = Unset
 				if BL < 0x8 {
 					inst.Opcode = "subs"
 				}
@@ -1020,8 +1034,6 @@ func table232(inst Inst, bytes []byte) Inst {
 			switch BH {
 			case 0x0:
 				// 1F 0?
-				// TODO: Leak from above cases. Fix.
-				inst.BWL = Unset
 				inst.Opcode = "das"
 			case 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF:
 				// 1F 8?, 1F 9?, 1F A?, 1F B?, 1F C?, 1F D?, 1F E?, 1F F?
@@ -1043,32 +1055,37 @@ func table232(inst Inst, bytes []byte) Inst {
 
 		}
 	case 0x6:
-		inst.AddressingMode = AbsoluteAddress
 		switch AL {
 		case 0xA:
 			switch BH {
 			case 0x0:
+				inst.AddressingMode = AbsoluteAddress
 				inst.Opcode = "mov"
 				inst.TotalBytes = 4
 				inst.BWL = Byte
 			case 0x2:
+				inst.AddressingMode = AbsoluteAddress
 				inst.Opcode = "mov"
 				inst.TotalBytes = 6
 				inst.BWL = Byte
 			case 0x8:
+				inst.AddressingMode = AbsoluteAddress
 				inst.TotalBytes = 4
 				inst.BWL = Byte
 				inst.Opcode = "mov"
 			case 0xA:
+				inst.AddressingMode = AbsoluteAddress
 				inst.TotalBytes = 6
 				inst.BWL = Byte
 				inst.Opcode = "mov"
 			case 0x1, 0x3:
 				inst = table234(inst, bytes)
 			case 0x4:
+				inst.AddressingMode = AbsoluteAddress
 				inst.TotalBytes = 4
 				inst.Opcode = "movfpe"
 			case 0xC:
+				inst.AddressingMode = AbsoluteAddress
 				inst.TotalBytes = 4
 				inst.Opcode = "movtpe"
 			}
@@ -1076,46 +1093,64 @@ func table232(inst Inst, bytes []byte) Inst {
 	case 0x7:
 		switch AL {
 		case 0x9:
-			inst.TotalBytes = 4
-			inst.AddressingMode = Immediate
 			switch BH {
 			case 0x0:
+				inst.TotalBytes = 4
+				inst.AddressingMode = Immediate
 				inst.BWL = Word
 				inst.Opcode = "mov"
 			case 0x1:
+				inst.TotalBytes = 4
+				inst.AddressingMode = Immediate
 				inst.BWL = Word
 				inst.Opcode = "add"
 			case 0x2:
+				inst.TotalBytes = 4
+				inst.AddressingMode = Immediate
 				inst.BWL = Word
 				inst.Opcode = "cmp"
 			case 0x3:
+				inst.TotalBytes = 4
+				inst.AddressingMode = Immediate
 				inst.BWL = Word
 				inst.Opcode = "sub"
 			case 0x4, 0x5, 0x6:
+				inst.TotalBytes = 4
+				inst.AddressingMode = Immediate
 				inst.BWL = Word
 				inst.Opcode = orXorAnd(BH, false)
 			}
 		case 0xA:
-			inst.AddressingMode = Immediate
-			inst.TotalBytes = 6
 			// TODO: Possible too broad
 			if BL < 0x8 {
 				switch BH {
 				case 0x0:
+					inst.AddressingMode = Immediate
+					inst.TotalBytes = 6
 					inst.BWL = Longword
 					inst.Opcode = "mov"
 				case 0x1:
+					inst.AddressingMode = Immediate
+					inst.TotalBytes = 6
 					inst.BWL = Longword
 					inst.Opcode = "add"
 				case 0x2:
+					inst.AddressingMode = Immediate
+					inst.TotalBytes = 6
 					inst.BWL = Longword
 					inst.Opcode = "cmp"
 				case 0x3:
+					inst.AddressingMode = Immediate
+					inst.TotalBytes = 6
 					inst.BWL = Longword
 					inst.Opcode = "sub"
 				case 0x4, 0x5, 0x6:
-					inst.BWL = Longword
 					inst.Opcode = orXorAnd(BH, false)
+					if inst.Opcode != ".word" {
+						inst.AddressingMode = Immediate
+						inst.TotalBytes = 6
+						inst.BWL = Longword
+					}
 				}
 			}
 		case 0xC:
@@ -1163,18 +1198,10 @@ func table232(inst Inst, bytes []byte) Inst {
 			inst = table233(inst, bytes)
 		}
 	}
-	if inst.Opcode == ".word" {
-		inst.TotalBytes = 2
-		inst.BWL = Unset
-		inst.AddressingMode = None
-	}
+
 	return inst
 }
 
-// TODO: Potentially missing register direct sub.w (p235/322)
-// TODO: Potentially missing XORC (p246/322)
-
-// Table2.3 (3) - returns the instruction and the size in bytes (4)
 func table233(inst Inst, bytes []byte) Inst {
 	AH := bytes[0] >> 4
 	AL := bytes[0] & 0x0F
@@ -1186,16 +1213,18 @@ func table233(inst Inst, bytes []byte) Inst {
 	DL := bytes[3] & 0x0F
 	switch AH {
 	case 0x0:
-		inst.AddressingMode = RegisterDirect
-		inst.TotalBytes = 4
 		if AL == 0x1 {
 			switch BH {
 			case 0xC:
 				if BL == 0x0 && CH == 0x5 {
 					if CL == 0x0 {
+						inst.AddressingMode = RegisterDirect
+						inst.TotalBytes = 4
 						inst.BWL = Byte
 						inst.Opcode = "mulxs"
 					} else if CL == 0x2 && DL < 0x8 {
+						inst.AddressingMode = RegisterDirect
+						inst.TotalBytes = 4
 						inst.BWL = Word
 						inst.Opcode = "mulxs"
 					}
@@ -1205,10 +1234,14 @@ func table233(inst Inst, bytes []byte) Inst {
 				if BL == 0x0 && CH == 0x5 {
 					switch CL {
 					case 0x1:
+						inst.AddressingMode = RegisterDirect
+						inst.TotalBytes = 4
 						inst.BWL = Byte
 						inst.Opcode = "divxs"
 					case 0x3:
 						if DL < 0x8 {
+							inst.AddressingMode = RegisterDirect
+							inst.TotalBytes = 4
 							inst.BWL = Word
 							inst.Opcode = "divxs"
 						}
@@ -1217,15 +1250,21 @@ func table233(inst Inst, bytes []byte) Inst {
 
 			case 0xF:
 				if BL == 0x0 && CH == 0x6 && CL == 0x4 && DH < 0x8 && DL < 0x8 {
+					inst.AddressingMode = RegisterDirect
+					inst.TotalBytes = 4
 					inst.BWL = Longword
 					inst.Opcode = "or"
 				}
 				//01f0 6524
 				if BL == 0x0 && CH == 0x6 && CL == 0x5 && DH < 0x8 && DL < 0x8 {
+					inst.AddressingMode = RegisterDirect
+					inst.TotalBytes = 4
 					inst.BWL = Longword
 					inst.Opcode = "xor"
 				}
 				if BL == 0x0 && CH == 0x6 && CL == 0x6 && DH < 0x8 && DL < 0x8 {
+					inst.AddressingMode = RegisterDirect
+					inst.TotalBytes = 4
 					inst.BWL = Longword
 					inst.Opcode = "and"
 				}
@@ -1233,13 +1272,13 @@ func table233(inst Inst, bytes []byte) Inst {
 		}
 
 	case 0x7:
-		inst.AddressingMode = RegisterIndirect
 		switch AL {
 		case 0xC:
 			if BH < 0x8 && BL == 0x0 {
 				switch CH {
 				case 0x6:
 					if CL == 0x3 {
+						inst.AddressingMode = RegisterIndirect
 						inst.TotalBytes = 4
 						inst.Opcode = "btst"
 					}
@@ -1248,14 +1287,16 @@ func table233(inst Inst, bytes []byte) Inst {
 					switch CL {
 					case 0x3, 0x4, 0x5, 0x6, 0x7:
 						// 7C ?0 73, 7C ?0 74, 7C ?0 75, 7C ?0 76, 7C ?0 77
-						inst.TotalBytes = 4
 						inst.Opcode = borBxorBandBld(CL, DH)
+						if inst.Opcode != ".word" {
+							inst.AddressingMode = RegisterIndirect
+							inst.TotalBytes = 4
+						}
 					}
 				}
 			}
 
 		case 0xD:
-			inst.AddressingMode = RegisterIndirect
 			if BH < 0x8 && BL == 0x0 {
 				// 7D ?0
 				switch CH {
@@ -1263,12 +1304,16 @@ func table233(inst Inst, bytes []byte) Inst {
 					switch CL {
 					case 0x0, 0x1, 0x2:
 						// 7D ?0 60, 7D ?0 61, 7D ?0 62
-						inst.TotalBytes = 4
 						inst.Opcode = bSetBNotBClr(CL)
+						if inst.Opcode != ".word" {
+							inst.AddressingMode = RegisterIndirect
+							inst.TotalBytes = 4
+						}
 					case 0x7:
 						// 7D ?0 67
 						inst.TotalBytes = 4
 						if DH&0x8 == 0 {
+							inst.AddressingMode = RegisterIndirect
 							inst.Opcode = "bst"
 						} else {
 							inst.Opcode = "bist"
@@ -1279,8 +1324,11 @@ func table233(inst Inst, bytes []byte) Inst {
 					case 0x0, 0x1, 0x2:
 						if DH < 0x8 {
 							// 7D ?0 70 ?0, 7D ?0 71 ?0, 7D ?0 72 ?0
-							inst.TotalBytes = 4
 							inst.Opcode = bSetBNotBClr(CL)
+							if inst.Opcode != ".word" {
+								inst.AddressingMode = RegisterIndirect
+								inst.TotalBytes = 4
+							}
 						}
 					}
 				}
@@ -1291,26 +1339,32 @@ func table233(inst Inst, bytes []byte) Inst {
 				switch CL {
 				case 0x3, 0x4, 0x5, 0x6, 0x7:
 					// 7E ?? 73, 7E ?? 74, 7E ?? 75, 7E ?? 76, 7E ?? 77
-					inst.TotalBytes = 4
-					inst.AddressingMode = AbsoluteAddress
 					inst.Opcode = borBxorBandBld(CL, DH)
+					if inst.Opcode != ".word" {
+						inst.TotalBytes = 4
+						inst.AddressingMode = AbsoluteAddress
+					}
 				}
 			}
 		case 0xF:
-			inst.AddressingMode = AbsoluteAddress
 			switch CH {
 			case 0x6:
 				switch CL {
 				case 0x0, 0x1, 0x2:
 					// 7F ?? 60, 7F ?? 61, 7F ?? 62
-					inst.TotalBytes = 4
 					inst.Opcode = bSetBNotBClr(CL)
+					if inst.Opcode != ".word" {
+						inst.AddressingMode = AbsoluteAddress
+						inst.TotalBytes = 4
+					}
 				case 0x7:
 					// 7F ?? 67
 					inst.TotalBytes = 4
 					if DH&0x8 == 0 {
+						inst.AddressingMode = AbsoluteAddress
 						inst.Opcode = "bst"
 					} else {
+						inst.AddressingMode = AbsoluteAddress
 						inst.Opcode = "bist"
 					}
 				}
@@ -1318,28 +1372,26 @@ func table233(inst Inst, bytes []byte) Inst {
 				switch CL {
 				case 0x0, 0x1, 0x2:
 					if DH < 0x8 {
-						inst.TotalBytes = 4
 						inst.Opcode = bSetBNotBClr(CL)
+						if inst.Opcode != ".word" {
+							inst.AddressingMode = AbsoluteAddress
+							inst.TotalBytes = 4
+						}
 					}
 				}
 			}
 		}
 	}
-	if inst.Opcode == ".word" {
-		inst.TotalBytes = 2
-	}
+
 	return inst
 }
 
 func table234(inst Inst, bytes []byte) Inst {
-	inst.TotalBytes = 6
 	AH := bytes[0] >> 4
 	AL := bytes[0] & 0x0F
-
 	if AH == 0x6 && AL == 0xA {
 		BH := bytes[1] >> 4
 		BL := bytes[1] & 0x0F
-
 		// CH := bytes[2] >> 4      always address bytes
 		// CL := bytes[2] & 0x0F    always address bytes
 		// DH := bytes[3] >> 4      always address bytes
@@ -1353,7 +1405,6 @@ func table234(inst Inst, bytes []byte) Inst {
 		// GL appears unused?
 		HH := bytes[7] >> 4
 		//HL := bytes[7] & 0x0F
-		inst.AddressingMode = AbsoluteAddress
 		switch BH {
 		case 0x1:
 			switch BL {
@@ -1362,12 +1413,18 @@ func table234(inst Inst, bytes []byte) Inst {
 				case 0x6:
 					switch EL {
 					case 0x3:
+						inst.TotalBytes = 6
+						inst.AddressingMode = AbsoluteAddress
 						inst.Opcode = "btst"
 					}
 				case 0x7:
 					switch EL {
 					case 0x3, 0x4, 0x5, 0x6, 0x7:
 						inst.Opcode = borBxorBandBld(EL, FH)
+						if inst.Opcode != ".word" {
+							inst.TotalBytes = 6
+							inst.AddressingMode = AbsoluteAddress
+						}
 					}
 				}
 			case 0x8:
@@ -1375,12 +1432,19 @@ func table234(inst Inst, bytes []byte) Inst {
 				case 0x6:
 					switch EL {
 					case 0x0, 0x1, 0x2:
-						inst.TotalBytes = 6
 						inst.Opcode = bSetBNotBClr(EL)
+						if inst.Opcode != ".word" {
+							inst.TotalBytes = 6
+							inst.AddressingMode = AbsoluteAddress
+						}
 					case 0x7:
 						if FH&0x8 == 0 {
+							inst.TotalBytes = 6
+							inst.AddressingMode = AbsoluteAddress
 							inst.Opcode = "bst"
 						} else {
+							inst.TotalBytes = 6
+							inst.AddressingMode = AbsoluteAddress
 							inst.Opcode = "bist"
 						}
 					}
@@ -1389,8 +1453,11 @@ func table234(inst Inst, bytes []byte) Inst {
 					case 0x0, 0x1, 0x2:
 						// 6A 18 ?? ?? 72 ?0
 						if FH < 0x8 {
-							inst.TotalBytes = 6
 							inst.Opcode = bSetBNotBClr(EL)
+							if inst.Opcode != ".word" {
+								inst.AddressingMode = AbsoluteAddress
+								inst.TotalBytes = 6
+							}
 						}
 					}
 				}
@@ -1402,6 +1469,7 @@ func table234(inst Inst, bytes []byte) Inst {
 				case 0x6:
 					switch GL {
 					case 0x3:
+						inst.AddressingMode = AbsoluteAddress
 						inst.TotalBytes = 8
 						inst.Opcode = "btst"
 					}
@@ -1409,8 +1477,11 @@ func table234(inst Inst, bytes []byte) Inst {
 					switch GL {
 					case 0x3, 0x4, 0x5, 0x6, 0x7:
 						// if HH < 0x8 {
-						inst.TotalBytes = 8
 						inst.Opcode = borBxorBandBld(GL, HH)
+						if inst.Opcode != ".word" {
+							inst.AddressingMode = AbsoluteAddress
+							inst.TotalBytes = 8
+						}
 						// }
 					}
 				}
@@ -1419,10 +1490,14 @@ func table234(inst Inst, bytes []byte) Inst {
 				case 0x6:
 					switch GL {
 					case 0x0, 0x1, 0x2:
-						inst.TotalBytes = 8
 						inst.Opcode = bSetBNotBClr(GL)
+						if inst.Opcode != ".word" {
+							inst.AddressingMode = AbsoluteAddress
+							inst.TotalBytes = 8
+						}
 					case 0x7:
 						inst.TotalBytes = 8
+						inst.AddressingMode = AbsoluteAddress
 						if HH&0x8 == 0 {
 							inst.Opcode = "bst"
 						} else {
@@ -1434,15 +1509,15 @@ func table234(inst Inst, bytes []byte) Inst {
 					case 0x0, 0x1, 0x2:
 						// 6A 38 ?? ?? ?? ?? 72 ?0
 						if HH < 0x8 {
-							inst.TotalBytes = 8
 							inst.Opcode = bSetBNotBClr(GL)
+							if inst.Opcode != ".word" {
+								inst.AddressingMode = AbsoluteAddress
+								inst.TotalBytes = 8
+							}
 						}
 					}
 				}
 			}
-		}
-		if inst.Opcode == ".word" {
-			inst.TotalBytes = 2
 		}
 	}
 	return inst
