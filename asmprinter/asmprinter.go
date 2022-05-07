@@ -37,12 +37,8 @@ func getInstWithSizeAndOperand(inst disassembler.Inst) string {
 	}
 
 	if _, ok := instsInexplicablyMissingSize[inst.Opcode]; ok {
-		return inst.Opcode + decodeOperand(inst)
+		return inst.Opcode
 	} else {
-		return inst.Opcode + sizeToString[inst.BWL] + decodeOperand(inst)
+		return inst.Opcode + sizeToString[inst.BWL]
 	}
-}
-
-func decodeOperand(inst disassembler.Inst) string {
-	return " Unimplemented"
 }
