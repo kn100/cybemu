@@ -18,14 +18,14 @@ func main() {
 	f, err := os.Open(args[0])
 	if err != nil {
 		fmt.Printf("Couldn't open file for some reason. Error was: %s\n", err)
-		os.Exit(1)
+		return
 	}
 	defer f.Close()
 
 	finfo, err := os.Stat(args[0])
 	if err != nil {
 		fmt.Printf("Couldn't get info about file for some reason. Error was: %s\n", err)
-		os.Exit(1)
+		return
 	}
 
 	bytes := make([]byte, finfo.Size())
