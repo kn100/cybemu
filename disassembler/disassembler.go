@@ -910,8 +910,7 @@ func table232(inst Inst, bytes []byte) Inst {
 		}
 	case 0x6:
 		inst.AddressingMode = AbsoluteAddress
-		switch AL {
-		case 0xA:
+		if AL == 0xA {
 			switch BH {
 			case 0x0:
 				inst.Opcode = "mov"
