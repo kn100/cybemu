@@ -181,23 +181,23 @@ func (i *Inst) String() string {
 		if bwl == size.Unset {
 			bwl = size.Byte
 		}
-		build = fmt.Sprintf("%s, %s", toRegister(i.RegSrc[0], bwl, false), toRegister(i.RegDst[0], bwl, false))
+		build = fmt.Sprintf("%s, %s", toRegister(i.RegSrc[0], bwl), toRegister(i.RegDst[0], bwl))
 	case operand.R32_R32_S2:
-		build = fmt.Sprintf("%s, %s", toRegister(i.RegSrc[0], i.BWL, true), toRegister(i.RegDst[0], i.BWL, false))
+		build = fmt.Sprintf("%s, %s", toShiftedRegister(i.RegSrc[0], i.BWL), toRegister(i.RegDst[0], i.BWL))
 	case operand.R32_R32_S4:
-		build = fmt.Sprintf("%s, %s", toRegister(i.RegSrc[0], i.BWL, false), toRegister(i.RegDst[0], i.BWL, false))
+		build = fmt.Sprintf("%s, %s", toRegister(i.RegSrc[0], i.BWL), toRegister(i.RegDst[0], i.BWL))
 	case operand.Ix_R32_ADDS_SUBS:
-		build = fmt.Sprintf("#%d, %s", int(i.Imm[0]), toRegister(i.RegDst[0], size.Longword, false))
+		build = fmt.Sprintf("#%d, %s", int(i.Imm[0]), toRegister(i.RegDst[0], size.Longword))
 	case operand.Ix_R8:
-		build = fmt.Sprintf("#%d, %s", int(i.Imm[0]), toRegister(i.RegDst[0], size.Byte, false))
+		build = fmt.Sprintf("#%d, %s", int(i.Imm[0]), toRegister(i.RegDst[0], size.Byte))
 	case operand.R8:
-		build = toRegister(i.RegDst[0], size.Byte, false)
+		build = toRegister(i.RegDst[0], size.Byte)
 	case operand.Ix_R8_INC_DEC:
-		build = fmt.Sprintf("#%d, %s", int(i.Imm[0]), toRegister(i.RegDst[0], size.Byte, false))
+		build = fmt.Sprintf("#%d, %s", int(i.Imm[0]), toRegister(i.RegDst[0], size.Byte))
 	case operand.Ix_R16_INC_DEC:
-		build = fmt.Sprintf("#%d, %s", int(i.Imm[0]), toRegister(i.RegDst[0], size.Word, false))
+		build = fmt.Sprintf("#%d, %s", int(i.Imm[0]), toRegister(i.RegDst[0], size.Word))
 	case operand.Ix_R32_INC_DEC:
-		build = fmt.Sprintf("#%d, %s", int(i.Imm[0]), toRegister(i.RegDst[0], size.Longword, false))
+		build = fmt.Sprintf("#%d, %s", int(i.Imm[0]), toRegister(i.RegDst[0], size.Longword))
 	case operand.None:
 		build = ""
 	}
@@ -214,12 +214,41 @@ func (i *Inst) String() string {
 	return fmt.Sprintf("%s%s :(", mnemonic, sizeSuffix)
 }
 
-func toRegister(b byte, s size.Size, shift bool) string {
+func toRegister(b byte, s size.Size) string {
 	register := ""
 	intb := int(b)
-	if shift {
-		intb = intb - 8
+
+	switch s {
+	case size.Byte:
+		hl := "h"
+
+		if int(b) > 7 {
+			hl = "l"
+			intb -= 8
+		}
+		register = fmt.Sprintf("r%d%s", intb, hl)
+	case size.Word:
+		re := "r"
+		if int(b) > 7 {
+			re = "e"
+			intb -= 8
+		}
+		register = fmt.Sprintf("%s%d", re, intb)
+	case size.Longword:
+		if intb == 15 || intb == 7 {
+			register = "sp"
+		} else {
+			register = fmt.Sprintf("er%d", intb)
+		}
 	}
+	return register
+}
+
+func toShiftedRegister(b byte, s size.Size) string {
+	register := ""
+	intb := int(b)
+	intb = intb - 8
+
 	switch s {
 	case size.Byte:
 		hl := "h"
