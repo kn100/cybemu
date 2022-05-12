@@ -8,6 +8,7 @@ import (
 	"github.com/kn100/cybemu/disassembler"
 	"github.com/kn100/cybemu/instruction"
 	"github.com/kn100/cybemu/opcode"
+	"github.com/kn100/cybemu/operand"
 	"github.com/kn100/cybemu/size"
 	"github.com/stretchr/testify/assert"
 )
@@ -22,8 +23,8 @@ func TestDisassemble(t *testing.T) {
 		{
 			Bytes: []byte{0x00, 0x00, 0x00, 0x00},
 			ExpectedInsts: []instruction.Inst{
-				{Opcode: opcode.Nop, Bytes: []byte{0x00, 0x00}, TotalBytes: 2},
-				{Opcode: opcode.Nop, Bytes: []byte{0x00, 0x00}, TotalBytes: 2, Pos: 2},
+				{Opcode: opcode.Nop, Bytes: []byte{0x00, 0x00}, TotalBytes: 2, OperandType: operand.None},
+				{Opcode: opcode.Nop, Bytes: []byte{0x00, 0x00}, TotalBytes: 2, Pos: 2, OperandType: operand.None},
 			},
 		},
 		{
