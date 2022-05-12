@@ -23,9 +23,11 @@ func TestDisassemble(t *testing.T) {
 			},
 		},
 		{
-			Bytes: []byte{0x8D, 0x81,
+			Bytes: []byte{
+				0x8D, 0x81,
 				0x79, 0x6C, 0x26, 0x94,
-				0x01, 0x00, 0x78, 0x70, 0x6B, 0x23, 0x00, 0x00, 0x27, 0x0E},
+				0x01, 0x00, 0x78, 0x70, 0x6B, 0x23, 0x00, 0x00, 0x27, 0x0E,
+			},
 			ExpectedInsts: []disassembler.Inst{
 				{
 					Opcode:         "add",
@@ -2655,7 +2657,7 @@ func TestDecodeRangeCases(t *testing.T) {
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
 		},
-		//exr cases
+		// exr cases
 		{
 			// 01 41 69 F0
 			Input:          []byte{0x01, 0x41, 0x69, 0xF0},
@@ -3066,7 +3068,7 @@ func TestDecodeRangeCases(t *testing.T) {
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
 		},
-		//exr cases
+		// exr cases
 		{
 			// 01 41 69 F0
 			Input:          []byte{0x01, 0x41, 0x69, 0xF0},
