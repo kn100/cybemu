@@ -36,34 +36,62 @@ type Inst struct {
 
 func (i *Inst) DetermineOperandTypeAndSetData() {
 	switch i.AddressingMode {
-	// case addressingmode.None:
-	// 	panic("None not implemented")
 	// case addressingmode.Immediate:
 	// 	panic("Immediate not implemented")
 	case addressingmode.RegisterDirect:
 		switch i.BWL {
 		case size.Byte:
 			switch i.Opcode {
-			case opcode.Add, opcode.And, opcode.Cmp:
+			case opcode.Add, opcode.Sub, opcode.And, opcode.Cmp, opcode.Mov, opcode.Or, opcode.Xor:
 				i.OperandType = operand.R8_R8
-				// RegSrc is the 4 MSB of i.Bytes[1]
 				i.RegSrc = []byte{i.Bytes[1] >> 4}
-				// RegDst is the 4 LSB of i.Bytes[1]
 				i.RegDst = []byte{i.Bytes[1] & 0x0F}
-			case opcode.Dec:
+			case opcode.Dec, opcode.Inc:
 				i.OperandType = operand.Ix_R8_INC_DEC
 				i.Imm = []byte{1}
 				i.RegDst = []byte{i.Bytes[1] & 0x0F}
+			case opcode.Divxs, opcode.Mulxs:
+				i.OperandType = operand.R8_R16_MULXS_DIVXS
+				i.RegSrc = []byte{i.Bytes[3] >> 4}
+				i.RegDst = []byte{i.Bytes[3] & 0x0F}
+			case opcode.Divxu, opcode.Mulxu:
+				i.OperandType = operand.R8_R16
+				i.RegSrc = []byte{i.Bytes[1] >> 4}
+				i.RegDst = []byte{i.Bytes[1] & 0x0F}
+			case opcode.Ldc:
+				i.OperandType = operand.R8_LDC
+				i.RegSrc = []byte{i.Bytes[1] & 0x0F}
+			case opcode.Stc:
+				i.OperandType = operand.R8_STC
+				i.RegDst = []byte{i.Bytes[1] & 0x0F}
+			case opcode.Neg, opcode.Not:
+				i.OperandType = operand.R8
+				i.RegDst = []byte{i.Bytes[1] & 0x0F}
+			case opcode.Rotl, opcode.Rotr, opcode.Shal, opcode.Shar:
+				i.OperandType = operand.Ix_R8_SH
+				i.RegDst = []byte{i.Bytes[1] & 0x0F}
+				if (i.Bytes[1] >> 4) == 0x8 {
+					i.Imm = []byte{1}
+				} else {
+					i.Imm = []byte{2}
+				}
+			case opcode.Rotxl, opcode.Rotxr, opcode.Shll, opcode.Shlr:
+				i.OperandType = operand.Ix_R8_SH
+				i.RegDst = []byte{i.Bytes[1] & 0x0F}
+				if (i.Bytes[1] >> 4) == 0x0 {
+					i.Imm = []byte{1}
+				} else {
+					i.Imm = []byte{2}
+				}
 			}
+
 		case size.Word:
 			switch i.Opcode {
-			case opcode.Add, opcode.And, opcode.Cmp:
+			case opcode.Add, opcode.Sub, opcode.And, opcode.Cmp, opcode.Mov, opcode.Or, opcode.Xor:
 				i.OperandType = operand.R16_R16
-				// RegSrc is the 4 MSB of i.Bytes[1]
 				i.RegSrc = []byte{i.Bytes[1] >> 4}
-				// RegDst is the 4 LSB of i.Bytes[1]
 				i.RegDst = []byte{i.Bytes[1] & 0x0F}
-			case opcode.Dec:
+			case opcode.Dec, opcode.Inc:
 				i.OperandType = operand.Ix_R16_INC_DEC
 				BH := i.Bytes[1] >> 4
 				if BH == 0x5 {
@@ -72,22 +100,51 @@ func (i *Inst) DetermineOperandTypeAndSetData() {
 					i.Imm = []byte{2}
 				}
 				i.RegDst = []byte{i.Bytes[1] & 0x0F}
+			case opcode.Mulxs, opcode.Divxs:
+				i.OperandType = operand.R16_R32_MULXS_DIVXS
+				i.RegSrc = []byte{i.Bytes[3] >> 4}
+				i.RegDst = []byte{i.Bytes[3] & 0x0F}
+			case opcode.Divxu, opcode.Mulxu:
+				i.OperandType = operand.R16_R32
+				i.RegSrc = []byte{i.Bytes[1] >> 4}
+				i.RegDst = []byte{i.Bytes[1] & 0x0F}
+			case opcode.Exts:
+				i.OperandType = operand.R16
+				i.RegDst = []byte{i.Bytes[1] & 0x0F}
+			case opcode.Extu:
+				i.OperandType = operand.R16
+				i.RegDst = []byte{i.Bytes[1] & 0x0F}
+			case opcode.Neg, opcode.Not:
+				i.OperandType = operand.R16
+				i.RegDst = []byte{i.Bytes[1] & 0x0F}
+			case opcode.Rotl, opcode.Rotr, opcode.Shal, opcode.Shar:
+				i.OperandType = operand.Ix_R16_SH
+				i.RegDst = []byte{i.Bytes[1] & 0x0F}
+				if (i.Bytes[1] >> 4) == 0x9 {
+					i.Imm = []byte{1}
+				} else {
+					i.Imm = []byte{2}
+				}
+			case opcode.Rotxl, opcode.Rotxr, opcode.Shll, opcode.Shlr:
+				i.OperandType = operand.Ix_R16_SH
+				i.RegDst = []byte{i.Bytes[1] & 0x0F}
+				if (i.Bytes[1] >> 4) == 0x1 {
+					i.Imm = []byte{1}
+				} else {
+					i.Imm = []byte{2}
+				}
 			}
 		case size.Longword:
 			switch i.Opcode {
-			case opcode.Add, opcode.Cmp:
+			case opcode.Add, opcode.Sub, opcode.Cmp, opcode.Mov:
 				i.OperandType = operand.R32_R32_S2
-				// RegSrc is the 4 MSB of i.Bytes[1]
 				i.RegSrc = []byte{i.Bytes[1] >> 4}
-				// RegDst is the 4 LSB of i.Bytes[1]
 				i.RegDst = []byte{i.Bytes[1] & 0x0F}
-			case opcode.And:
+			case opcode.And, opcode.Or, opcode.Xor:
 				i.OperandType = operand.R32_R32_S4
-				// RegSrc is the 4 MSB of i.Bytes[3]
 				i.RegSrc = []byte{i.Bytes[3] >> 4}
-				// RegDst is the 4 LSB of i.Bytes[3]
 				i.RegDst = []byte{i.Bytes[3] & 0x0F}
-			case opcode.Dec:
+			case opcode.Dec, opcode.Inc:
 				i.OperandType = operand.Ix_R32_INC_DEC
 				BH := i.Bytes[1] >> 4
 				if BH == 0x7 {
@@ -96,6 +153,25 @@ func (i *Inst) DetermineOperandTypeAndSetData() {
 					i.Imm = []byte{2}
 				}
 				i.RegDst = []byte{i.Bytes[1] & 0x0F}
+			case opcode.Exts, opcode.Extu, opcode.Neg, opcode.Not:
+				i.OperandType = operand.R32
+				i.RegDst = []byte{i.Bytes[1] & 0x0F}
+			case opcode.Rotl, opcode.Rotr, opcode.Shal, opcode.Shar:
+				i.OperandType = operand.Ix_R32_SH
+				i.RegDst = []byte{i.Bytes[1] & 0x0F}
+				if (i.Bytes[1] >> 4) == 0xB {
+					i.Imm = []byte{1}
+				} else {
+					i.Imm = []byte{2}
+				}
+			case opcode.Rotxl, opcode.Rotxr, opcode.Shll, opcode.Shlr:
+				i.OperandType = operand.Ix_R32_SH
+				i.RegDst = []byte{i.Bytes[1] & 0x0F}
+				if (i.Bytes[1] >> 4) == 0x3 {
+					i.Imm = []byte{1}
+				} else {
+					i.Imm = []byte{2}
+				}
 			}
 		case size.Unset:
 			switch i.Opcode {
@@ -111,11 +187,9 @@ func (i *Inst) DetermineOperandTypeAndSetData() {
 					i.Imm = []byte{4}
 				}
 				i.RegDst = []byte{i.Bytes[1] & 0x0F}
-			case opcode.Addx:
+			case opcode.Addx, opcode.Subx:
 				i.OperandType = operand.R8_R8
-				// RegSrc is the 4 MSB of i.Bytes[1]
 				i.RegSrc = []byte{i.Bytes[1] >> 4}
-				// RegDst is the 4 LSB of i.Bytes[1]
 				i.RegDst = []byte{i.Bytes[1] & 0x0F}
 			case opcode.Band, opcode.Biand, opcode.Bild, opcode.Bior, opcode.Bist, opcode.Bixor, opcode.Bld, opcode.Bst:
 				i.OperandType = operand.Ix_R8
@@ -124,7 +198,6 @@ func (i *Inst) DetermineOperandTypeAndSetData() {
 				if i.Imm[0] > 7 {
 					i.Imm[0] = i.Imm[0] - 8
 				}
-				// RegDst is the 4 LSB of i.Bytes[1]
 				i.RegDst = []byte{i.Bytes[1] & 0x0F}
 			case opcode.Bclr, opcode.Bnot, opcode.Bor, opcode.Bset, opcode.Btst, opcode.Bxor:
 				// AH is the 4 MSB of i.Bytes[0]
@@ -132,18 +205,18 @@ func (i *Inst) DetermineOperandTypeAndSetData() {
 				if check == 0x7 {
 					i.OperandType = operand.Ix_R8
 					i.Imm = []byte{i.Bytes[1] >> 4}
-					// RegDst is the 4 LSB of i.Bytes[1]
 					i.RegDst = []byte{i.Bytes[1] & 0x0F}
 				} else {
 					i.OperandType = operand.R8_R8
-					// RegSrc is the 4 MSB of i.Bytes[1]
 					i.RegSrc = []byte{i.Bytes[1] >> 4}
-					// RegDst is the 4 LSB of i.Bytes[1]
 					i.RegDst = []byte{i.Bytes[1] & 0x0F}
 				}
 			case opcode.Daa, opcode.Das:
 				i.OperandType = operand.R8
 				i.RegDst = []byte{i.Bytes[1] & 0x0F}
+			case opcode.Trapa:
+				i.OperandType = operand.TRAPA_Ix
+				i.Imm = []byte{i.Bytes[1] >> 4}
 			}
 		}
 	case addressingmode.None:
@@ -192,12 +265,32 @@ func (i *Inst) String() string {
 		build = fmt.Sprintf("#%d, %s", int(i.Imm[0]), toRegister(i.RegDst[0], size.Byte))
 	case operand.R8:
 		build = toRegister(i.RegDst[0], size.Byte)
-	case operand.Ix_R8_INC_DEC:
+	case operand.Ix_R8_INC_DEC, operand.Ix_R8_SH:
 		build = fmt.Sprintf("#%d, %s", int(i.Imm[0]), toRegister(i.RegDst[0], size.Byte))
-	case operand.Ix_R16_INC_DEC:
+	case operand.Ix_R16_INC_DEC, operand.Ix_R16_SH:
 		build = fmt.Sprintf("#%d, %s", int(i.Imm[0]), toRegister(i.RegDst[0], size.Word))
-	case operand.Ix_R32_INC_DEC:
+	case operand.Ix_R32_INC_DEC, operand.Ix_R32_SH:
 		build = fmt.Sprintf("#%d, %s", int(i.Imm[0]), toRegister(i.RegDst[0], size.Longword))
+	case operand.R8_R16_MULXS_DIVXS, operand.R8_R16:
+		build = fmt.Sprintf("%s, %s", toRegister(i.RegSrc[0], i.BWL), toRegister(i.RegDst[0], size.Word))
+	case operand.R16_R32_MULXS_DIVXS, operand.R16_R32:
+		build = fmt.Sprintf("%s, %s", toRegister(i.RegSrc[0], i.BWL), toRegister(i.RegDst[0], size.Longword))
+	case operand.R16, operand.R32:
+		build = toRegister(i.RegDst[0], i.BWL)
+	case operand.R8_LDC:
+		ccrexr := "ccr"
+		if i.Bytes[1]>>4 == 0x1 {
+			ccrexr = "exr"
+		}
+		build = fmt.Sprintf("%s, %s", toRegister(i.RegSrc[0], i.BWL), ccrexr)
+	case operand.R8_STC:
+		ccrexr := "ccr"
+		if i.Bytes[1]>>4 == 0x1 {
+			ccrexr = "exr"
+		}
+		build = fmt.Sprintf("%s, %s", ccrexr, toRegister(i.RegDst[0], i.BWL))
+	case operand.TRAPA_Ix:
+		build = fmt.Sprintf("#%d", int(i.Imm[0]))
 	case operand.None:
 		build = ""
 	}
