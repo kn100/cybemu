@@ -1,3 +1,5 @@
+// contains a struct defining an instruction within Cybemu, as well as code to
+// decode the operand of the instruction.
 package instruction
 
 import (
@@ -34,6 +36,8 @@ type Inst struct {
 	ImmL           []byte
 }
 
+// DetermineOperandTypeAndSetData will, based on the data in the instruction,
+// determine its Operand Type, and set various fields in the instruction.
 func (i *Inst) DetermineOperandTypeAndSetData() {
 	switch i.AddressingMode {
 	// case addressingmode.Immediate:

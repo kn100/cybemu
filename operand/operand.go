@@ -1,7 +1,11 @@
+// contains an set of iota which define all the valid operand types on a Renesas
+// (Previously Hitachi) h8s/2000. They're a direct copy of what is found in C4PC
+// - Thanks to @_tim_ for providing these.
 package operand
 
 //go:generate stringer -type=OperandType -output=operandtype_string.go
 
+// OperandType is a type of Operand.
 type OperandType int64
 
 const (

@@ -1,3 +1,5 @@
+// contains a set of iota which define all the valid opcodes for a Renesas
+// (Previously Hitachi) h8s/2000 class CPU.
 package opcode
 
 //go:generate stringer -type=Opcode -output=opcode_string.go

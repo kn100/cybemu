@@ -1,3 +1,5 @@
+// contains code intended to print a slice of Inst as standard assembly
+// notation (ie, a textual output of the instructions).
 package asmprinter
 
 import (
@@ -6,6 +8,7 @@ import (
 	"github.com/kn100/cybemu/instruction"
 )
 
+// PrintAssy prints a slice of instructions as standard assembly notation.
 func PrintAssy(instructions []instruction.Inst) {
 	for _, inst := range instructions {
 		if inst.TotalBytes == 2 {

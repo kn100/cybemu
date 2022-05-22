@@ -1,3 +1,5 @@
+// contains a set of iota which define all the valid addressing modes found on a
+// Renesas (Previously Hitachi) h8s/2000 cpu.
 package addressingmode
 
 //go:generate stringer -type=AddressingMode -output=addressingmode_string.go

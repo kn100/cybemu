@@ -1,8 +1,8 @@
-// disassembler contains utilities to disassemble a binary for the Renesas
-// (Previously Hitachi) h8s/2000 class CPUs. It is being developed as a part of
-// a larger project to emulate the Cybiko Classic. It roughly follows the layout
-// of the tables found in "H8S/2600 Series, H8S/2000 Series Software Manual
-// Rev.4.00 2006.02", Section 2.5 Table 2.3 (p274-277).
+// contains utilities to disassemble a binary for the Renesas (Previously
+// Hitachi) h8s/2000 class CPUs. It is being developed as a part of a larger
+// project to emulate the Cybiko Classic. It roughly follows the layout of the
+// tables found in "H8S/2600 Series, H8S/2000 Series Software Manual Rev.4.00
+// 2006.02", Section 2.5 Table 2.3 (p274-277).
 package disassembler
 
 import (
