@@ -220,12 +220,8 @@ func (i *Inst) DetermineOperandTypeAndSetData() {
 			}
 		}
 	case addressingmode.None:
-		switch i.BWL {
-		case size.Unset:
-			switch i.Opcode {
-			case opcode.Nop:
-				i.OperandType = operand.None
-			}
+		if i.BWL == size.Unset && i.Opcode == opcode.Nop {
+			i.OperandType = operand.None
 		}
 
 		// case addressingmode.RegisterIndirect:
