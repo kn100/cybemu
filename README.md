@@ -1,7 +1,7 @@
 # Cybemu
 ![GitHub CI](https://github.com/kn100/cybemu/actions/workflows/go.yml/badge.svg)
 ![Coveralls](https://coveralls.io/repos/github/kn100/cybemu/badge.svg?branch=master)
-[![Go Documentation](https://godocs.io/github.com/kn100/cybemu/disassembler?status.svg)](https://godocs.io/github.com/kn100/cybemu/disassembler)
+[![Go Documentation](https://godocs.io/github.com/kn100/cybemu/disassembler?status.svg)](https://godocs.io/github.com/kn100/cybemu)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Discord](https://badgen.net/badge/icon/discord?icon=discord&label=The%20Cybiko%20Zone)](https://discord.gg/4E4Bjsjvyc)
 [![DeepSource](https://deepsource.io/gh/kn100/cybemu.svg/?label=active+issues&show_trend=true&token=YSbPkpxvYCG4POBvgHCpL_5q)](https://deepsource.io/gh/kn100/cybemu/?ref=repository-badge)
