@@ -342,23 +342,7 @@ func toShiftedRegister(b byte, s size.Size) string {
 	intb := int(b)
 	intb = intb - 8
 
-	switch s {
-	case size.Byte:
-		hl := "h"
-
-		if int(b) > 7 {
-			hl = "l"
-			intb -= 8
-		}
-		register = fmt.Sprintf("r%d%s", intb, hl)
-	case size.Word:
-		re := "r"
-		if int(b) > 7 {
-			re = "e"
-			intb -= 8
-		}
-		register = fmt.Sprintf("%s%d", re, intb)
-	case size.Longword:
+	if s == size.Longword {
 		if intb == 15 || intb == 7 {
 			register = "sp"
 		} else {

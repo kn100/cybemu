@@ -1462,6 +1462,18 @@ func TestDetermineOperandTypeAndSetData(t *testing.T) {
 			expectedOperandType: operand.R32_R32_S4,
 			expectedString:      "xor.l er0, er1",
 		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0xFF, 0x00},
+				Opcode:         opcode.Invalid,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.None,
+			},
+			expectedRegSrc:      nil,
+			expectedRegDst:      nil,
+			expectedOperandType: operand.Unknown,
+			expectedString:      "invalid :(",
+		},
 	}
 	for _, tc := range testCases {
 		tc.instruction.DetermineOperandTypeAndSetData()
