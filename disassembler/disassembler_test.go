@@ -4,7 +4,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/kn100/cybemu/addressingmode"
 	"github.com/kn100/cybemu/disassembler"
+	"github.com/kn100/cybemu/instruction"
+	"github.com/kn100/cybemu/opcode"
+	"github.com/kn100/cybemu/operand"
+	"github.com/kn100/cybemu/size"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,13 +18,13 @@ import (
 func TestDisassemble(t *testing.T) {
 	testCases := []struct {
 		Bytes         []byte
-		ExpectedInsts []disassembler.Inst
+		ExpectedInsts []instruction.Inst
 	}{
 		{
 			Bytes: []byte{0x00, 0x00, 0x00, 0x00},
-			ExpectedInsts: []disassembler.Inst{
-				{Opcode: "nop", Bytes: []byte{0x00, 0x00}, TotalBytes: 2},
-				{Opcode: "nop", Bytes: []byte{0x00, 0x00}, TotalBytes: 2, Pos: 2},
+			ExpectedInsts: []instruction.Inst{
+				{Opcode: opcode.Nop, Bytes: []byte{0x00, 0x00}, TotalBytes: 2, OperandType: operand.None},
+				{Opcode: opcode.Nop, Bytes: []byte{0x00, 0x00}, TotalBytes: 2, Pos: 2, OperandType: operand.None},
 			},
 		},
 		{
@@ -28,29 +33,29 @@ func TestDisassemble(t *testing.T) {
 				0x79, 0x6C, 0x26, 0x94,
 				0x01, 0x00, 0x78, 0x70, 0x6B, 0x23, 0x00, 0x00, 0x27, 0x0E,
 			},
-			ExpectedInsts: []disassembler.Inst{
+			ExpectedInsts: []instruction.Inst{
 				{
-					Opcode:         "add",
+					Opcode:         opcode.Add,
 					Bytes:          []byte{0x8D, 0x81},
 					TotalBytes:     2,
-					BWL:            disassembler.Byte,
-					AddressingMode: disassembler.Immediate,
+					BWL:            size.Byte,
+					AddressingMode: addressingmode.Immediate,
 					Pos:            0,
 				},
 				{
-					Opcode:         "and",
+					Opcode:         opcode.And,
 					Bytes:          []byte{0x79, 0x6C, 0x26, 0x94},
 					TotalBytes:     4,
-					BWL:            disassembler.Word,
-					AddressingMode: disassembler.Immediate,
+					BWL:            size.Word,
+					AddressingMode: addressingmode.Immediate,
 					Pos:            2,
 				},
 				{
-					Opcode:         "mov",
+					Opcode:         opcode.Mov,
 					Bytes:          []byte{0x01, 0x00, 0x78, 0x70, 0x6B, 0x23, 0x00, 0x00, 0x27, 0x0E},
 					TotalBytes:     10,
-					BWL:            disassembler.Longword,
-					AddressingMode: disassembler.RegisterIndirectWithDisplacement,
+					BWL:            size.Longword,
+					AddressingMode: addressingmode.RegisterIndirectWithDisplacement,
 					Pos:            6,
 				},
 			},
@@ -67,1642 +72,1642 @@ func TestDisassemble(t *testing.T) {
 func TestDecodeTimsTestCases(t *testing.T) {
 	testCases := []struct {
 		Input                  []byte
-		ExpectedOpcode         string
-		expectedBWL            disassembler.Size
-		expectedAddressingMode disassembler.AddressingMode
+		ExpectedOpcode         opcode.Opcode
+		expectedBWL            size.Size
+		expectedAddressingMode addressingmode.AddressingMode
 	}{
 		{
 			Input:          []byte{0x8D, 0x81},
-			ExpectedOpcode: "add",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Add,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x08, 0x3E},
-			ExpectedOpcode: "add",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Add,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x79, 0x11, 0x30, 0x39},
-			ExpectedOpcode: "add",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Add,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x09, 0x0B},
-			ExpectedOpcode: "add",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Add,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x7A, 0x15, 0x12, 0x34, 0x56, 0x78},
-			ExpectedOpcode: "add",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Add,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x0A, 0x87},
-			ExpectedOpcode: "add",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Add,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x0B, 0x00},
-			ExpectedOpcode: "adds",
+			ExpectedOpcode: opcode.Adds,
 		},
 		{
 			Input:          []byte{0x0B, 0x81},
-			ExpectedOpcode: "adds",
+			ExpectedOpcode: opcode.Adds,
 		},
 		{
 			Input:          []byte{0x0B, 0x92},
-			ExpectedOpcode: "adds",
+			ExpectedOpcode: opcode.Adds,
 		},
 		{
 			Input:          []byte{0x95, 0x0A},
-			ExpectedOpcode: "addx",
+			ExpectedOpcode: opcode.Addx,
 		},
 		{
 			Input:          []byte{0x0E, 0xC0},
-			ExpectedOpcode: "addx",
+			ExpectedOpcode: opcode.Addx,
 		},
 		{
 			Input:          []byte{0xE2, 0x2D},
-			ExpectedOpcode: "and",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.And,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x16, 0x32},
-			ExpectedOpcode: "and",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.And,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x79, 0x6C, 0x26, 0x94},
-			ExpectedOpcode: "and",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.And,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x66, 0x2E},
-			ExpectedOpcode: "and",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.And,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x7A, 0x63, 0x00, 0x0A, 0xBC, 0xDE},
-			ExpectedOpcode: "and",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.And,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x01, 0xF0, 0x66, 0x54},
-			ExpectedOpcode: "and",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.And,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x06, 0xC0},
-			ExpectedOpcode: "andc",
+			ExpectedOpcode: opcode.Andc,
 		},
 		{
 			Input:          []byte{0x76, 0x25},
-			ExpectedOpcode: "band",
+			ExpectedOpcode: opcode.Band,
 		},
 		{
 			Input:          []byte{0x7C, 0x20, 0x76, 0x40},
-			ExpectedOpcode: "band",
+			ExpectedOpcode: opcode.Band,
 		},
 		{
 			Input:          []byte{0x7E, 0xC0, 0x76, 0x50},
-			ExpectedOpcode: "band",
+			ExpectedOpcode: opcode.Band,
 		},
 		{
 			Input:          []byte{0x40, 0xFE},
-			ExpectedOpcode: "bra",
+			ExpectedOpcode: opcode.Bra,
 		},
 		{
 			Input:          []byte{0x41, 0xFC},
-			ExpectedOpcode: "brn",
+			ExpectedOpcode: opcode.Brn,
 		},
 		{
 			Input:          []byte{0x42, 0xFA},
-			ExpectedOpcode: "bhi",
+			ExpectedOpcode: opcode.Bhi,
 		},
 		{
 			Input:          []byte{0x43, 0xF8},
-			ExpectedOpcode: "bls",
+			ExpectedOpcode: opcode.Bls,
 		},
 		{
 			Input:          []byte{0x44, 0xF6},
-			ExpectedOpcode: "bcc",
+			ExpectedOpcode: opcode.Bcc,
 		},
 		{
 			Input:          []byte{0x45, 0xF4},
-			ExpectedOpcode: "bcs",
+			ExpectedOpcode: opcode.Bcs,
 		},
 		{
 			Input:          []byte{0x46, 0xF2},
-			ExpectedOpcode: "bne",
+			ExpectedOpcode: opcode.Bne,
 		},
 		{
 			Input:          []byte{0x47, 0xF0},
-			ExpectedOpcode: "beq",
+			ExpectedOpcode: opcode.Beq,
 		},
 		{
 			Input:          []byte{0x48, 0xEE},
-			ExpectedOpcode: "bvc",
+			ExpectedOpcode: opcode.Bvc,
 		},
 		{
 			Input:          []byte{0x49, 0xEC},
-			ExpectedOpcode: "bvs",
+			ExpectedOpcode: opcode.Bvs,
 		},
 		{
 			Input:          []byte{0x4A, 0xEA},
-			ExpectedOpcode: "bpl",
+			ExpectedOpcode: opcode.Bpl,
 		},
 		{
 			Input:          []byte{0x4B, 0xE8},
-			ExpectedOpcode: "bmi",
+			ExpectedOpcode: opcode.Bmi,
 		},
 		{
 			Input:          []byte{0x4C, 0xE6},
-			ExpectedOpcode: "bge",
+			ExpectedOpcode: opcode.Bge,
 		},
 		{
 			Input:          []byte{0x4D, 0xE4},
-			ExpectedOpcode: "blt",
+			ExpectedOpcode: opcode.Blt,
 		},
 		{
 			Input:          []byte{0x4E, 0xE2},
-			ExpectedOpcode: "bgt",
+			ExpectedOpcode: opcode.Bgt,
 		},
 		{
 			Input:          []byte{0x4F, 0xE0},
-			ExpectedOpcode: "ble",
+			ExpectedOpcode: opcode.Ble,
 		},
 		{
 			Input:          []byte{0x58, 0x00, 0x00, 0x3C},
-			ExpectedOpcode: "bra",
+			ExpectedOpcode: opcode.Bra,
 		},
 		{
 			Input:          []byte{0x58, 0x10, 0x00, 0x38},
-			ExpectedOpcode: "brn",
+			ExpectedOpcode: opcode.Brn,
 		},
 		{
 			Input:          []byte{0x58, 0x20, 0x00, 0x34},
-			ExpectedOpcode: "bhi",
+			ExpectedOpcode: opcode.Bhi,
 		},
 		{
 			Input:          []byte{0x58, 0x30, 0x00, 0x30},
-			ExpectedOpcode: "bls",
+			ExpectedOpcode: opcode.Bls,
 		},
 		{
 			Input:          []byte{0x58, 0x40, 0x00, 0x2C},
-			ExpectedOpcode: "bcc",
+			ExpectedOpcode: opcode.Bcc,
 		},
 		{
 			Input:          []byte{0x58, 0x50, 0x00, 0x28},
-			ExpectedOpcode: "bcs",
+			ExpectedOpcode: opcode.Bcs,
 		},
 		{
 			Input:          []byte{0x58, 0x60, 0x00, 0x24},
-			ExpectedOpcode: "bne",
+			ExpectedOpcode: opcode.Bne,
 		},
 		{
 			Input:          []byte{0x58, 0x70, 0x00, 0x20},
-			ExpectedOpcode: "beq",
+			ExpectedOpcode: opcode.Beq,
 		},
 		{
 			Input:          []byte{0x58, 0x80, 0x00, 0x1C},
-			ExpectedOpcode: "bvc",
+			ExpectedOpcode: opcode.Bvc,
 		},
 		{
 			Input:          []byte{0x58, 0x90, 0x00, 0x18},
-			ExpectedOpcode: "bvs",
+			ExpectedOpcode: opcode.Bvs,
 		},
 		{
 			Input:          []byte{0x58, 0xA0, 0x00, 0x14},
-			ExpectedOpcode: "bpl",
+			ExpectedOpcode: opcode.Bpl,
 		},
 		{
 			Input:          []byte{0x58, 0xB0, 0x00, 0x10},
-			ExpectedOpcode: "bmi",
+			ExpectedOpcode: opcode.Bmi,
 		},
 		{
 			Input:          []byte{0x58, 0xC0, 0x00, 0x0C},
-			ExpectedOpcode: "bge",
+			ExpectedOpcode: opcode.Bge,
 		},
 		{
 			Input:          []byte{0x58, 0xD0, 0x00, 0x08},
-			ExpectedOpcode: "blt",
+			ExpectedOpcode: opcode.Blt,
 		},
 		{
 			Input:          []byte{0x58, 0xE0, 0x00, 0x04},
-			ExpectedOpcode: "bgt",
+			ExpectedOpcode: opcode.Bgt,
 		},
 		{
 			Input:          []byte{0x58, 0xF0, 0x00, 0x00},
-			ExpectedOpcode: "ble",
+			ExpectedOpcode: opcode.Ble,
 		},
 		{
 			Input:          []byte{0x72, 0x4A},
-			ExpectedOpcode: "bclr",
+			ExpectedOpcode: opcode.Bclr,
 		},
 		{
 			Input:          []byte{0x7D, 0x40, 0x72, 0x60},
-			ExpectedOpcode: "bclr",
+			ExpectedOpcode: opcode.Bclr,
 		},
 		{
 			Input:          []byte{0x7F, 0xC0, 0x72, 0x10},
-			ExpectedOpcode: "bclr",
+			ExpectedOpcode: opcode.Bclr,
 		},
 		{
 			Input:          []byte{0x62, 0x93},
-			ExpectedOpcode: "bclr",
+			ExpectedOpcode: opcode.Bclr,
 		},
 		{
 			Input:          []byte{0x7D, 0x30, 0x62, 0x40},
-			ExpectedOpcode: "bclr",
+			ExpectedOpcode: opcode.Bclr,
 		},
 		{
 			Input:          []byte{0x7F, 0xC0, 0x62, 0x50},
-			ExpectedOpcode: "bclr",
+			ExpectedOpcode: opcode.Bclr,
 		},
 		{
 			Input:          []byte{0x76, 0xC2},
-			ExpectedOpcode: "biand",
+			ExpectedOpcode: opcode.Biand,
 		},
 		{
 			Input:          []byte{0x7C, 0x40, 0x76, 0xF0},
-			ExpectedOpcode: "biand",
+			ExpectedOpcode: opcode.Biand,
 		},
 		{
 			Input:          []byte{0x7E, 0xC0, 0x76, 0x80},
-			ExpectedOpcode: "biand",
+			ExpectedOpcode: opcode.Biand,
 		},
 		{
 			Input:          []byte{0x77, 0xC2},
-			ExpectedOpcode: "bild",
+			ExpectedOpcode: opcode.Bild,
 		},
 		{
 			Input:          []byte{0x7C, 0x40, 0x77, 0xF0},
-			ExpectedOpcode: "bild",
+			ExpectedOpcode: opcode.Bild,
 		},
 		{
 			Input:          []byte{0x7E, 0xC0, 0x77, 0x80},
-			ExpectedOpcode: "bild",
+			ExpectedOpcode: opcode.Bild,
 		},
 		{
 			Input:          []byte{0x74, 0xC2},
-			ExpectedOpcode: "bior",
+			ExpectedOpcode: opcode.Bior,
 		},
 		{
 			Input:          []byte{0x7C, 0x40, 0x74, 0xF0},
-			ExpectedOpcode: "bior",
+			ExpectedOpcode: opcode.Bior,
 		},
 		{
 			Input:          []byte{0x7E, 0xC0, 0x74, 0x80},
-			ExpectedOpcode: "bior",
+			ExpectedOpcode: opcode.Bior,
 		},
 		{
 			Input:          []byte{0x67, 0xC2},
-			ExpectedOpcode: "bist",
+			ExpectedOpcode: opcode.Bist,
 		},
 		{
 			Input:          []byte{0x7D, 0x40, 0x67, 0xF0},
-			ExpectedOpcode: "bist",
+			ExpectedOpcode: opcode.Bist,
 		},
 		{
 			Input:          []byte{0x7F, 0xC0, 0x67, 0x80},
-			ExpectedOpcode: "bist",
+			ExpectedOpcode: opcode.Bist,
 		},
 		{
 			Input:          []byte{0x75, 0xC2},
-			ExpectedOpcode: "bixor",
+			ExpectedOpcode: opcode.Bixor,
 		},
 		{
 			Input:          []byte{0x7C, 0x40, 0x75, 0xF0},
-			ExpectedOpcode: "bixor",
+			ExpectedOpcode: opcode.Bixor,
 		},
 		{
 			Input:          []byte{0x7E, 0xC0, 0x75, 0x80},
-			ExpectedOpcode: "bixor",
+			ExpectedOpcode: opcode.Bixor,
 		},
 		{
 			Input:          []byte{0x77, 0x42},
-			ExpectedOpcode: "bld",
+			ExpectedOpcode: opcode.Bld,
 		},
 		{
 			Input:          []byte{0x7C, 0x40, 0x77, 0x70},
-			ExpectedOpcode: "bld",
+			ExpectedOpcode: opcode.Bld,
 		},
 		{
 			Input:          []byte{0x7E, 0xC0, 0x77, 0x00},
-			ExpectedOpcode: "bld",
+			ExpectedOpcode: opcode.Bld,
 		},
 		{
 			Input:          []byte{0x71, 0x42},
-			ExpectedOpcode: "bnot",
+			ExpectedOpcode: opcode.Bnot,
 		},
 		{
 			Input:          []byte{0x7D, 0x40, 0x71, 0x70},
-			ExpectedOpcode: "bnot",
+			ExpectedOpcode: opcode.Bnot,
 		},
 		{
 			Input:          []byte{0x7F, 0xC0, 0x71, 0x00},
-			ExpectedOpcode: "bnot",
+			ExpectedOpcode: opcode.Bnot,
 		},
 		{
 			Input:          []byte{0x61, 0x81},
-			ExpectedOpcode: "bnot",
+			ExpectedOpcode: opcode.Bnot,
 		},
 		{
 			Input:          []byte{0x7D, 0x30, 0x61, 0x50},
-			ExpectedOpcode: "bnot",
+			ExpectedOpcode: opcode.Bnot,
 		},
 		{
 			Input:          []byte{0x7F, 0xC0, 0x61, 0xE0},
-			ExpectedOpcode: "bnot",
+			ExpectedOpcode: opcode.Bnot,
 		},
 		{
 			Input:          []byte{0x74, 0x42},
-			ExpectedOpcode: "bor",
+			ExpectedOpcode: opcode.Bor,
 		},
 		{
 			Input:          []byte{0x7C, 0x40, 0x74, 0x70},
-			ExpectedOpcode: "bor",
+			ExpectedOpcode: opcode.Bor,
 		},
 		{
 			Input:          []byte{0x7E, 0xC0, 0x74, 0x00},
-			ExpectedOpcode: "bor",
+			ExpectedOpcode: opcode.Bor,
 		},
 		{
 			Input:          []byte{0x70, 0x42},
-			ExpectedOpcode: "bset",
+			ExpectedOpcode: opcode.Bset,
 		},
 		{
 			Input:          []byte{0x7D, 0x40, 0x70, 0x70},
-			ExpectedOpcode: "bset",
+			ExpectedOpcode: opcode.Bset,
 		},
 		{
 			Input:          []byte{0x7F, 0xC0, 0x70, 0x00},
-			ExpectedOpcode: "bset",
+			ExpectedOpcode: opcode.Bset,
 		},
 		{
 			Input:          []byte{0x60, 0x81},
-			ExpectedOpcode: "bset",
+			ExpectedOpcode: opcode.Bset,
 		},
 		{
 			Input:          []byte{0x7D, 0x30, 0x60, 0x50},
-			ExpectedOpcode: "bset",
+			ExpectedOpcode: opcode.Bset,
 		},
 		{
 			Input:          []byte{0x7F, 0xC0, 0x60, 0xE0},
-			ExpectedOpcode: "bset",
+			ExpectedOpcode: opcode.Bset,
 		},
 		{
 			Input:          []byte{0x55, 0x00},
-			ExpectedOpcode: "bsr",
+			ExpectedOpcode: opcode.Bsr,
 		},
 		{
 			Input:          []byte{0x5C, 0x00, 0xFF, 0x7A},
-			ExpectedOpcode: "bsr",
+			ExpectedOpcode: opcode.Bsr,
 		},
 		{
 			Input:          []byte{0x5C, 0x00, 0x00, 0x00},
-			ExpectedOpcode: "bsr",
+			ExpectedOpcode: opcode.Bsr,
 		},
 		{
 			Input:          []byte{0x67, 0x42},
-			ExpectedOpcode: "bst",
+			ExpectedOpcode: opcode.Bst,
 		},
 		{
 			Input:          []byte{0x7D, 0x40, 0x67, 0x70},
-			ExpectedOpcode: "bst",
+			ExpectedOpcode: opcode.Bst,
 		},
 		{
 			Input:          []byte{0x7F, 0xC0, 0x67, 0x00},
-			ExpectedOpcode: "bst",
+			ExpectedOpcode: opcode.Bst,
 		},
 		{
 			Input:          []byte{0x73, 0x42},
-			ExpectedOpcode: "btst",
+			ExpectedOpcode: opcode.Btst,
 		},
 		{
 			Input:          []byte{0x7C, 0x40, 0x73, 0x70},
-			ExpectedOpcode: "btst",
+			ExpectedOpcode: opcode.Btst,
 		},
 		{
 			Input:          []byte{0x7E, 0xC0, 0x73, 0x00},
-			ExpectedOpcode: "btst",
+			ExpectedOpcode: opcode.Btst,
 		},
 		{
 			Input:          []byte{0x63, 0x81},
-			ExpectedOpcode: "btst",
+			ExpectedOpcode: opcode.Btst,
 		},
 		{
 			Input:          []byte{0x7C, 0x30, 0x63, 0x50},
-			ExpectedOpcode: "btst",
+			ExpectedOpcode: opcode.Btst,
 		},
 		{
 			Input:          []byte{0x7E, 0xC0, 0x63, 0xE0},
-			ExpectedOpcode: "btst",
+			ExpectedOpcode: opcode.Btst,
 		},
 		{
 			Input:          []byte{0x75, 0x42},
-			ExpectedOpcode: "bxor",
+			ExpectedOpcode: opcode.Bxor,
 		},
 		{
 			Input:          []byte{0x7C, 0x40, 0x75, 0x70},
-			ExpectedOpcode: "bxor",
+			ExpectedOpcode: opcode.Bxor,
 		},
 		{
 			Input:          []byte{0x7E, 0xC0, 0x75, 0x00},
-			ExpectedOpcode: "bxor",
+			ExpectedOpcode: opcode.Bxor,
 		},
 		{
 			Input:          []byte{0xA5, 0x8F},
-			ExpectedOpcode: "cmp",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Cmp,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x1C, 0x4A},
-			ExpectedOpcode: "cmp",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Cmp,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x79, 0x2D, 0x1F, 0xFF},
-			ExpectedOpcode: "cmp",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Cmp,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x1D, 0xD2},
-			ExpectedOpcode: "cmp",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Cmp,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x7A, 0x24, 0x00, 0x00, 0xFF, 0xFF},
-			ExpectedOpcode: "cmp",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Cmp,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x1F, 0xB5},
-			ExpectedOpcode: "cmp",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Cmp,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x0F, 0x0C},
-			ExpectedOpcode: "daa",
+			ExpectedOpcode: opcode.Daa,
 		},
 		{
 			Input:          []byte{0x1F, 0x05},
-			ExpectedOpcode: "das",
+			ExpectedOpcode: opcode.Das,
 		},
 		{
 			Input:          []byte{0x1A, 0x05},
-			ExpectedOpcode: "dec",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Dec,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x1B, 0x54},
-			ExpectedOpcode: "dec",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Dec,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x1B, 0xDB},
-			ExpectedOpcode: "dec",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Dec,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x1B, 0x72},
-			ExpectedOpcode: "dec",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Dec,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x1B, 0xF3},
-			ExpectedOpcode: "dec",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Dec,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x01, 0xD0, 0x51, 0xBC},
-			ExpectedOpcode: "divxs",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Divxs,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x01, 0xD0, 0x53, 0xB2},
-			ExpectedOpcode: "divxs",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Divxs,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x51, 0xBC},
-			ExpectedOpcode: "divxu",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Divxu,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x53, 0xB2},
-			ExpectedOpcode: "divxu",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Divxu,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x7B, 0x5C, 0x59, 0x8F},
-			ExpectedOpcode: "eepmov",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Eepmov,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x7B, 0xD4, 0x59, 0x8F},
-			ExpectedOpcode: "eepmov",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Eepmov,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x17, 0xD2},
-			ExpectedOpcode: "exts",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Exts,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x17, 0xF6},
-			ExpectedOpcode: "exts",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Exts,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x17, 0x53},
-			ExpectedOpcode: "extu",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Extu,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x17, 0x75},
-			ExpectedOpcode: "extu",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Extu,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x0A, 0x04},
-			ExpectedOpcode: "inc",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Inc,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x0B, 0x5B},
-			ExpectedOpcode: "inc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Inc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x0B, 0xD5},
-			ExpectedOpcode: "inc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Inc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x0B, 0x72},
-			ExpectedOpcode: "inc",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Inc,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x0B, 0xF5},
-			ExpectedOpcode: "inc",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Inc,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x59, 0x60},
-			ExpectedOpcode: "jmp",
+			ExpectedOpcode: opcode.Jmp,
 		},
 		{
 			Input:          []byte{0x5A, 0x12, 0x89, 0xDE},
-			ExpectedOpcode: "jmp",
+			ExpectedOpcode: opcode.Jmp,
 		},
 		{
 			Input:          []byte{0x5B, 0x3C},
-			ExpectedOpcode: "jmp",
+			ExpectedOpcode: opcode.Jmp,
 		},
 		{
 			Input:          []byte{0x5D, 0x60},
-			ExpectedOpcode: "jsr",
+			ExpectedOpcode: opcode.Jsr,
 		},
 		{
 			Input:          []byte{0x5E, 0x12, 0x89, 0xDE},
-			ExpectedOpcode: "jsr",
+			ExpectedOpcode: opcode.Jsr,
 		},
 		{
 			Input:          []byte{0x5F, 0x3C},
-			ExpectedOpcode: "jsr",
+			ExpectedOpcode: opcode.Jsr,
 		},
 		{
 			Input:          []byte{0x07, 0xC1},
-			ExpectedOpcode: "ldc",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Ldc,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x03, 0x04},
-			ExpectedOpcode: "ldc",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Ldc,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x01, 0x40, 0x69, 0x20},
-			ExpectedOpcode: "ldc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Ldc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x40, 0x6F, 0x10, 0x1F, 0xFF},
-			ExpectedOpcode: "ldc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Ldc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x40, 0x78, 0x20, 0x6B, 0x20, 0x00, 0x12, 0x34, 0x56},
-			ExpectedOpcode: "ldc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Ldc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x40, 0x6D, 0x30},
-			ExpectedOpcode: "ldc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Ldc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x40, 0x6B, 0x00, 0x01, 0x26},
-			ExpectedOpcode: "ldc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Ldc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x40, 0x6B, 0x20, 0x00, 0x12, 0x89, 0xDE},
-			ExpectedOpcode: "ldc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Ldc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0xF6, 0x63},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x0C, 0xD4},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x68, 0x79},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x6E, 0x72, 0xFF, 0xFF},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x78, 0x70, 0x6A, 0x2B, 0x00, 0xFF, 0xFF, 0x9D},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x6C, 0x41},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x26, 0xC0},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x6A, 0x0C, 0x01, 0x26},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x6A, 0x2A, 0x00, 0x12, 0x89, 0xDE},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x68, 0xA0},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x6E, 0xC8, 0x82, 0xFB},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x78, 0x50, 0x6A, 0xA9, 0x00, 0xFE, 0x79, 0x61},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x6C, 0xA3},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x31, 0xC0},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x6A, 0x89, 0x01, 0x26},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x6A, 0xA2, 0x00, 0x12, 0x89, 0xDE},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x79, 0x0B, 0x27, 0x0F},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x0D, 0x4A},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x69, 0x24},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x6F, 0x1A, 0x00, 0xFF},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x78, 0x20, 0x6B, 0x25, 0x00, 0x01, 0x38, 0x80},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x6D, 0x40},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x6D, 0x70},
-			ExpectedOpcode: "pop",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Pop,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x6B, 0x0E, 0x01, 0x26},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x6B, 0x25, 0x00, 0x12, 0x89, 0xDE},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x69, 0xD8},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x6F, 0xF2, 0x01, 0x01},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x78, 0x60, 0x6B, 0xAD, 0x00, 0x00, 0x27, 0x10},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x6D, 0xD0},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x6D, 0xFE},
-			ExpectedOpcode: "push",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Push,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x6B, 0x88, 0x01, 0x26},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x6B, 0xAC, 0x00, 0x12, 0x89, 0xDE},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x7A, 0x00, 0x00, 0x00, 0x11, 0xD7},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x0F, 0x81},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x01, 0x00, 0x69, 0x23},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x01, 0x00, 0x6F, 0x74, 0x00, 0x3E},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x01, 0x00, 0x78, 0x70, 0x6B, 0x23, 0x00, 0x00, 0x27, 0x0E},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x01, 0x00, 0x6D, 0x70},
-			ExpectedOpcode: "pop",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Pop,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x01, 0x00, 0x6B, 0x03, 0x01, 0x26},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x01, 0x00, 0x6B, 0x22, 0x00, 0x12, 0x89, 0xDE},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x01, 0x00, 0x69, 0x95},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x01, 0x00, 0x6F, 0xF4, 0x00, 0x22},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Longword,
 		},
 		{
 			// Modified this test case to change DH to 0 (previously F) since I
 			// can't find a case where it's greater than 7 in the manual.
 			Input:          []byte{0x01, 0x00, 0x78, 0x00, 0x6B, 0xA5, 0x00, 0x00, 0x30, 0x0C},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x01, 0x00, 0x6D, 0xF6},
-			ExpectedOpcode: "push",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Push,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x01, 0x00, 0x6B, 0x81, 0x01, 0x26},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x01, 0x00, 0x6B, 0xA2, 0x00, 0x12, 0x89, 0xDE},
-			ExpectedOpcode: "mov",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Mov,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x6A, 0x4D, 0xFF, 0xC0},
-			ExpectedOpcode: "movfpe",
+			ExpectedOpcode: opcode.Movfpe,
 		},
 		{
 			Input:          []byte{0x6A, 0xC5, 0xFF, 0xC0},
-			ExpectedOpcode: "movtpe",
+			ExpectedOpcode: opcode.Movtpe,
 		},
 		{
 			Input:          []byte{0x01, 0xC0, 0x50, 0x42},
-			ExpectedOpcode: "mulxs",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Mulxs,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x01, 0xC0, 0x52, 0x25},
-			ExpectedOpcode: "mulxs",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Mulxs,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x50, 0x42},
-			ExpectedOpcode: "mulxu",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Mulxu,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x52, 0x26},
-			ExpectedOpcode: "mulxu",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Mulxu,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x17, 0x88},
-			ExpectedOpcode: "neg",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Neg,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x17, 0x9C},
-			ExpectedOpcode: "neg",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Neg,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x17, 0xB5},
-			ExpectedOpcode: "neg",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Neg,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x00, 0x00},
-			ExpectedOpcode: "nop",
+			ExpectedOpcode: opcode.Nop,
 		},
 		{
 			Input:          []byte{0x17, 0x0C},
-			ExpectedOpcode: "not",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Not,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x17, 0x15},
-			ExpectedOpcode: "not",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Not,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x17, 0x31},
-			ExpectedOpcode: "not",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Not,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0xC1, 0x04},
-			ExpectedOpcode: "or",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Or,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x14, 0x80},
-			ExpectedOpcode: "or",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Or,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x79, 0x40, 0x00, 0xC0},
-			ExpectedOpcode: "or",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Or,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x64, 0x80},
-			ExpectedOpcode: "or",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Or,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x7A, 0x40, 0x00, 0x00, 0x00, 0xFE},
-			ExpectedOpcode: "or",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Or,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x01, 0xF0, 0x64, 0x05},
-			ExpectedOpcode: "or",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Or,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x04, 0x01},
-			ExpectedOpcode: "orc",
+			ExpectedOpcode: opcode.Orc,
 		},
 		{
 			Input:          []byte{0x6D, 0x78},
-			ExpectedOpcode: "pop",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Pop,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x00, 0x6D, 0x73},
-			ExpectedOpcode: "pop",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Pop,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x6D, 0xF1},
-			ExpectedOpcode: "push",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Push,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x00, 0x6D, 0xF6},
-			ExpectedOpcode: "push",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Push,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x12, 0x81},
-			ExpectedOpcode: "rotl",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Rotl,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x12, 0x9C},
-			ExpectedOpcode: "rotl",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Rotl,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x12, 0xB6},
-			ExpectedOpcode: "rotl",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Rotl,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x13, 0x81},
-			ExpectedOpcode: "rotr",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Rotr,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x13, 0x94},
-			ExpectedOpcode: "rotr",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Rotr,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x13, 0xB3},
-			ExpectedOpcode: "rotr",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Rotr,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x12, 0x03},
-			ExpectedOpcode: "rotxl",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Rotxl,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x12, 0x16},
-			ExpectedOpcode: "rotxl",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Rotxl,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x12, 0x35},
-			ExpectedOpcode: "rotxl",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Rotxl,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x13, 0x0C},
-			ExpectedOpcode: "rotxr",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Rotxr,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x13, 0x1E},
-			ExpectedOpcode: "rotxr",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Rotxr,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x13, 0x34},
-			ExpectedOpcode: "rotxr",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Rotxr,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x56, 0x70},
-			ExpectedOpcode: "rte",
+			ExpectedOpcode: opcode.Rte,
 		},
 		{
 			Input:          []byte{0x54, 0x70},
-			ExpectedOpcode: "rts",
+			ExpectedOpcode: opcode.Rts,
 		},
 		{
 			Input:          []byte{0x10, 0x85},
-			ExpectedOpcode: "shal",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Shal,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x10, 0x9B},
-			ExpectedOpcode: "shal",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Shal,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x10, 0xB3},
-			ExpectedOpcode: "shal",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Shal,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x11, 0x84},
-			ExpectedOpcode: "shar",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Shar,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x11, 0x9E},
-			ExpectedOpcode: "shar",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Shar,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x11, 0xB5},
-			ExpectedOpcode: "shar",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Shar,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x10, 0x0E},
-			ExpectedOpcode: "shll",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Shll,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x10, 0x14},
-			ExpectedOpcode: "shll",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Shll,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x10, 0x32},
-			ExpectedOpcode: "shll",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Shll,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x11, 0x03},
-			ExpectedOpcode: "shlr",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Shlr,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x11, 0x1A},
-			ExpectedOpcode: "shlr",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Shlr,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x11, 0x31},
-			ExpectedOpcode: "shlr",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Shlr,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x01, 0x80},
-			ExpectedOpcode: "sleep",
+			ExpectedOpcode: opcode.Sleep,
 		},
 		{
 			Input:          []byte{0x02, 0x04},
-			ExpectedOpcode: "stc",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Stc,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x01, 0x40, 0x69, 0xF0},
-			ExpectedOpcode: "stc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Stc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x40, 0x6F, 0xF0, 0x00, 0x10},
-			ExpectedOpcode: "stc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Stc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x40, 0x78, 0x70, 0x6B, 0xA0, 0x00, 0x00, 0x00, 0x64},
-			ExpectedOpcode: "stc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Stc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x40, 0x6D, 0xE0},
-			ExpectedOpcode: "stc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Stc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x40, 0x6B, 0x80, 0xFF, 0xC0},
-			ExpectedOpcode: "stc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Stc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x40, 0x6B, 0xA0, 0x00, 0x12, 0x89, 0xDE},
-			ExpectedOpcode: "stc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Stc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x18, 0x44},
-			ExpectedOpcode: "sub",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Sub,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x79, 0x3B, 0xFF, 0xF8},
-			ExpectedOpcode: "sub",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Sub,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x19, 0x0C},
-			ExpectedOpcode: "sub",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Sub,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x7A, 0x37, 0xFF, 0xFF, 0xFF, 0xF0},
-			ExpectedOpcode: "sub",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Sub,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x1A, 0x86},
-			ExpectedOpcode: "sub",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Sub,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x1B, 0x04},
-			ExpectedOpcode: "subs",
+			ExpectedOpcode: opcode.Subs,
 		},
 		{
 			Input:          []byte{0x1B, 0x85},
-			ExpectedOpcode: "subs",
+			ExpectedOpcode: opcode.Subs,
 		},
 		{
 			Input:          []byte{0x1B, 0x96},
-			ExpectedOpcode: "subs",
+			ExpectedOpcode: opcode.Subs,
 		},
 		{
 			Input:          []byte{0xB5, 0x08},
-			ExpectedOpcode: "subx",
+			ExpectedOpcode: opcode.Subx,
 		},
 		{
 			Input:          []byte{0x1E, 0x09},
-			ExpectedOpcode: "subx",
+			ExpectedOpcode: opcode.Subx,
 		},
 		{
 			Input:          []byte{0x57, 0x20},
-			ExpectedOpcode: "trapa",
+			ExpectedOpcode: opcode.Trapa,
 		},
 		{
 			Input:          []byte{0xD4, 0x80},
-			ExpectedOpcode: "xor",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Xor,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x15, 0x4C},
-			ExpectedOpcode: "xor",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Xor,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x79, 0x5D, 0x20, 0x00},
-			ExpectedOpcode: "xor",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Xor,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x65, 0xD4},
-			ExpectedOpcode: "xor",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Xor,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x7A, 0x56, 0x00, 0x00, 0xFF, 0xFF},
-			ExpectedOpcode: "xor",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Xor,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x01, 0xF0, 0x65, 0x01},
-			ExpectedOpcode: "xor",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Xor,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x05, 0x40},
-			ExpectedOpcode: "xorc",
+			ExpectedOpcode: opcode.Xorc,
 		},
 		{
 			Input:          []byte{0x01, 0x41, 0x06, 0xA5},
-			ExpectedOpcode: "andc",
+			ExpectedOpcode: opcode.Andc,
 		},
 		{
 			Input:          []byte{0x6A, 0x10, 0x01, 0x23, 0x76, 0x30},
-			ExpectedOpcode: "band",
+			ExpectedOpcode: opcode.Band,
 		},
 		{
 			Input:          []byte{0x6A, 0x30, 0x12, 0x34, 0x56, 0x78, 0x76, 0x50},
-			ExpectedOpcode: "band",
+			ExpectedOpcode: opcode.Band,
 		},
 		{
 			Input:          []byte{0x6A, 0x18, 0x01, 0x23, 0x72, 0x30},
-			ExpectedOpcode: "bclr",
+			ExpectedOpcode: opcode.Bclr,
 		},
 		{
 			Input:          []byte{0x6A, 0x38, 0x12, 0x34, 0x56, 0x78, 0x72, 0x50},
-			ExpectedOpcode: "bclr",
+			ExpectedOpcode: opcode.Bclr,
 		},
 		{
 			Input:          []byte{0x6A, 0x18, 0x01, 0x23, 0x62, 0x70},
-			ExpectedOpcode: "bclr",
+			ExpectedOpcode: opcode.Bclr,
 		},
 		{
 			Input:          []byte{0x6A, 0x38, 0x12, 0x34, 0x56, 0x78, 0x62, 0xE0},
-			ExpectedOpcode: "bclr",
+			ExpectedOpcode: opcode.Bclr,
 		},
 		{
 			Input:          []byte{0x6A, 0x10, 0x01, 0x23, 0x76, 0xB0},
-			ExpectedOpcode: "biand",
+			ExpectedOpcode: opcode.Biand,
 		},
 		{
 			Input:          []byte{0x6A, 0x30, 0x12, 0x34, 0x67, 0x89, 0x76, 0xD0},
-			ExpectedOpcode: "biand",
+			ExpectedOpcode: opcode.Biand,
 		},
 		{
 			Input:          []byte{0x6A, 0x10, 0x01, 0x23, 0x77, 0xB0},
-			ExpectedOpcode: "bild",
+			ExpectedOpcode: opcode.Bild,
 		},
 		{
 			Input:          []byte{0x6A, 0x30, 0x12, 0x34, 0x56, 0x78, 0x77, 0xD0},
-			ExpectedOpcode: "bild",
+			ExpectedOpcode: opcode.Bild,
 		},
 		{
 			Input:          []byte{0x6A, 0x10, 0x01, 0x23, 0x74, 0xB0},
-			ExpectedOpcode: "bior",
+			ExpectedOpcode: opcode.Bior,
 		},
 		{
 			Input:          []byte{0x6A, 0x30, 0x12, 0x34, 0x56, 0x78, 0x74, 0xD0},
-			ExpectedOpcode: "bior",
+			ExpectedOpcode: opcode.Bior,
 		},
 		{
 			Input:          []byte{0x6A, 0x18, 0x01, 0x23, 0x67, 0xB0},
-			ExpectedOpcode: "bist",
+			ExpectedOpcode: opcode.Bist,
 		},
 		{
 			Input:          []byte{0x6A, 0x38, 0x12, 0x34, 0x56, 0x78, 0x67, 0xD0},
-			ExpectedOpcode: "bist",
+			ExpectedOpcode: opcode.Bist,
 		},
 		{
 			Input:          []byte{0x6A, 0x10, 0x01, 0x23, 0x75, 0xB0},
-			ExpectedOpcode: "bixor",
+			ExpectedOpcode: opcode.Bixor,
 		},
 		{
 			Input:          []byte{0x6A, 0x30, 0x12, 0x34, 0x56, 0x78, 0x75, 0xD0},
-			ExpectedOpcode: "bixor",
+			ExpectedOpcode: opcode.Bixor,
 		},
 		{
 			Input:          []byte{0x6A, 0x10, 0x01, 0x23, 0x77, 0x30},
-			ExpectedOpcode: "bld",
+			ExpectedOpcode: opcode.Bld,
 		},
 		{
 			Input:          []byte{0x6A, 0x30, 0x12, 0x34, 0x56, 0x78, 0x77, 0x50},
-			ExpectedOpcode: "bld",
+			ExpectedOpcode: opcode.Bld,
 		},
 		{
 			Input:          []byte{0x6A, 0x18, 0x01, 0x23, 0x71, 0x30},
-			ExpectedOpcode: "bnot",
+			ExpectedOpcode: opcode.Bnot,
 		},
 		{
 			Input:          []byte{0x6A, 0x38, 0x12, 0x34, 0x56, 0x78, 0x71, 0x50},
-			ExpectedOpcode: "bnot",
+			ExpectedOpcode: opcode.Bnot,
 		},
 		{
 			Input:          []byte{0x6A, 0x18, 0x01, 0x23, 0x61, 0x70},
-			ExpectedOpcode: "bnot",
+			ExpectedOpcode: opcode.Bnot,
 		},
 		{
 			Input:          []byte{0x6A, 0x38, 0x12, 0x34, 0x56, 0x78, 0x61, 0xE0},
-			ExpectedOpcode: "bnot",
+			ExpectedOpcode: opcode.Bnot,
 		},
 		{
 			Input:          []byte{0x6A, 0x10, 0x01, 0x23, 0x74, 0x30},
-			ExpectedOpcode: "bor",
+			ExpectedOpcode: opcode.Bor,
 		},
 		{
 			Input:          []byte{0x6A, 0x30, 0x12, 0x34, 0x56, 0x78, 0x74, 0x50},
-			ExpectedOpcode: "bor",
+			ExpectedOpcode: opcode.Bor,
 		},
 		{
 			Input:          []byte{0x6A, 0x18, 0x01, 0x23, 0x70, 0x30},
-			ExpectedOpcode: "bset",
+			ExpectedOpcode: opcode.Bset,
 		},
 		{
 			Input:          []byte{0x6A, 0x38, 0x12, 0x34, 0x56, 0x78, 0x70, 0x50},
-			ExpectedOpcode: "bset",
+			ExpectedOpcode: opcode.Bset,
 		},
 		{
 			Input:          []byte{0x6A, 0x18, 0x01, 0x23, 0x60, 0x70},
-			ExpectedOpcode: "bset",
+			ExpectedOpcode: opcode.Bset,
 		},
 		{
 			Input:          []byte{0x6A, 0x38, 0x12, 0x34, 0x56, 0x78, 0x60, 0xE0},
-			ExpectedOpcode: "bset",
+			ExpectedOpcode: opcode.Bset,
 		},
 		{
 			Input:          []byte{0x6A, 0x18, 0x01, 0x23, 0x67, 0x30},
-			ExpectedOpcode: "bst",
+			ExpectedOpcode: opcode.Bst,
 		},
 		{
 			Input:          []byte{0x6A, 0x38, 0x12, 0x34, 0x56, 0x78, 0x67, 0x50},
-			ExpectedOpcode: "bst",
+			ExpectedOpcode: opcode.Bst,
 		},
 		{
 			Input:          []byte{0x6A, 0x10, 0x01, 0x23, 0x73, 0x30},
-			ExpectedOpcode: "btst",
+			ExpectedOpcode: opcode.Btst,
 		},
 		{
 			Input:          []byte{0x6A, 0x30, 0x12, 0x34, 0x56, 0x78, 0x73, 0x50},
-			ExpectedOpcode: "btst",
+			ExpectedOpcode: opcode.Btst,
 		},
 		{
 			Input:          []byte{0x6A, 0x10, 0x01, 0x23, 0x63, 0x70},
-			ExpectedOpcode: "btst",
+			ExpectedOpcode: opcode.Btst,
 		},
 		{
 			Input:          []byte{0x6A, 0x30, 0x12, 0x34, 0x56, 0x78, 0x63, 0xE0},
-			ExpectedOpcode: "btst",
+			ExpectedOpcode: opcode.Btst,
 		},
 		{
 			Input:          []byte{0x6A, 0x10, 0x01, 0x23, 0x75, 0x30},
-			ExpectedOpcode: "bxor",
+			ExpectedOpcode: opcode.Bxor,
 		},
 		{
 			Input:          []byte{0x6A, 0x30, 0x12, 0x34, 0x56, 0x78, 0x75, 0x50},
-			ExpectedOpcode: "bxor",
+			ExpectedOpcode: opcode.Bxor,
 		},
 		{
 			Input:          []byte{0x01, 0x41, 0x07, 0x6A},
-			ExpectedOpcode: "ldc",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Ldc,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x03, 0x14},
-			ExpectedOpcode: "ldc",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Ldc,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x01, 0x41, 0x69, 0x30},
-			ExpectedOpcode: "ldc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Ldc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x41, 0x6F, 0x30, 0x01, 0x23},
-			ExpectedOpcode: "ldc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Ldc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x41, 0x78, 0x30, 0x6B, 0x20, 0x12, 0x34, 0x56, 0x78},
-			ExpectedOpcode: "ldc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Ldc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x41, 0x6D, 0x30},
-			ExpectedOpcode: "ldc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Ldc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x41, 0x6B, 0x00, 0x01, 0x23},
-			ExpectedOpcode: "ldc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Ldc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x41, 0x6B, 0x20, 0x12, 0x34, 0x56, 0x78},
-			ExpectedOpcode: "ldc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Ldc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x10, 0x6D, 0x73},
-			ExpectedOpcode: "ldm",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Ldm,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x01, 0x20, 0x6D, 0x76},
-			ExpectedOpcode: "ldm",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Ldm,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x01, 0x30, 0x6D, 0x77},
-			ExpectedOpcode: "ldm",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Ldm,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x01, 0x41, 0x04, 0x7B},
-			ExpectedOpcode: "orc",
+			ExpectedOpcode: opcode.Orc,
 		},
 		{
 			Input:          []byte{0x12, 0xC8},
-			ExpectedOpcode: "rotl",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Rotl,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x12, 0xD9},
-			ExpectedOpcode: "rotl",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Rotl,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x12, 0xF6},
-			ExpectedOpcode: "rotl",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Rotl,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x13, 0xC8},
-			ExpectedOpcode: "rotr",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Rotr,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x13, 0xD9},
-			ExpectedOpcode: "rotr",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Rotr,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x13, 0xF6},
-			ExpectedOpcode: "rotr",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Rotr,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x12, 0x48},
-			ExpectedOpcode: "rotxl",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Rotxl,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x12, 0x59},
-			ExpectedOpcode: "rotxl",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Rotxl,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x12, 0x76},
-			ExpectedOpcode: "rotxl",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Rotxl,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x13, 0x48},
-			ExpectedOpcode: "rotxr",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Rotxr,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x13, 0x59},
-			ExpectedOpcode: "rotxr",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Rotxr,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x13, 0x76},
-			ExpectedOpcode: "rotxr",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Rotxr,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x10, 0xC5},
-			ExpectedOpcode: "shal",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Shal,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x10, 0xDE},
-			ExpectedOpcode: "shal",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Shal,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x10, 0xF5},
-			ExpectedOpcode: "shal",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Shal,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x11, 0xC5},
-			ExpectedOpcode: "shar",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Shar,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x11, 0xDE},
-			ExpectedOpcode: "shar",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Shar,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x11, 0xF5},
-			ExpectedOpcode: "shar",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Shar,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x10, 0x45},
-			ExpectedOpcode: "shll",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Shll,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x10, 0x5E},
-			ExpectedOpcode: "shll",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Shll,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x10, 0x75},
-			ExpectedOpcode: "shll",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Shll,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x11, 0x45},
-			ExpectedOpcode: "shlr",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Shlr,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x11, 0x5E},
-			ExpectedOpcode: "shlr",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Shlr,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x11, 0x75},
-			ExpectedOpcode: "shlr",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Shlr,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x02, 0x15},
-			ExpectedOpcode: "stc",
-			expectedBWL:    disassembler.Byte,
+			ExpectedOpcode: opcode.Stc,
+			expectedBWL:    size.Byte,
 		},
 		{
 			Input:          []byte{0x01, 0x41, 0x69, 0xD0},
-			ExpectedOpcode: "stc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Stc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x41, 0x6F, 0xD0, 0x01, 0x23},
-			ExpectedOpcode: "stc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Stc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x41, 0x78, 0x50, 0x6B, 0xA0, 0x12, 0x34, 0x56, 0x78},
-			ExpectedOpcode: "stc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Stc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x41, 0x6D, 0xD0},
-			ExpectedOpcode: "stc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Stc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x41, 0x6B, 0x80, 0x01, 0x23},
-			ExpectedOpcode: "stc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Stc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x41, 0x6B, 0xA0, 0x12, 0x34, 0x56, 0x78},
-			ExpectedOpcode: "stc",
-			expectedBWL:    disassembler.Word,
+			ExpectedOpcode: opcode.Stc,
+			expectedBWL:    size.Word,
 		},
 		{
 			Input:          []byte{0x01, 0x10, 0x6D, 0xF2},
-			ExpectedOpcode: "stm",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Stm,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x01, 0x20, 0x6D, 0xF4},
-			ExpectedOpcode: "stm",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Stm,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x01, 0x30, 0x6D, 0xF0},
-			ExpectedOpcode: "stm",
-			expectedBWL:    disassembler.Longword,
+			ExpectedOpcode: opcode.Stm,
+			expectedBWL:    size.Longword,
 		},
 		{
 			Input:          []byte{0x01, 0xE0, 0x7B, 0x4C},
-			ExpectedOpcode: "tas",
+			ExpectedOpcode: opcode.Tas,
 		},
 		{
 			Input:          []byte{0x01, 0x41, 0x05, 0x9E},
-			ExpectedOpcode: "xorc",
+			ExpectedOpcode: opcode.Xorc,
 		},
 		{
 			Input:          []byte{0x58, 0x00, 0xFB, 0x16},
-			ExpectedOpcode: "bra",
+			ExpectedOpcode: opcode.Bra,
 		},
 		{
 			Input:          []byte{0x58, 0x10, 0xFB, 0x72},
-			ExpectedOpcode: "brn",
+			ExpectedOpcode: opcode.Brn,
 		},
 		// Below test cases disabled as h8s2000 CPU does not support them.
 		// {
@@ -1738,7 +1743,7 @@ func TestDecodeTimsTestCases(t *testing.T) {
 		copy(paddedInput, tc.Input)
 		inst := disassembler.Decode(paddedInput)
 		assert.Equal(t, tc.ExpectedOpcode, inst.Opcode, fmt.Sprintf("For byte sequence %x, expected opcode %s, got %s\n", tc.Input, tc.ExpectedOpcode, inst.Opcode))
-		assert.Equal(t, tc.expectedBWL, inst.BWL, fmt.Sprintf("For byte sequence %x, expected BWL %s, got %s\n", tc.Input, BWLToString(tc.expectedBWL), BWLToString(inst.BWL)))
+		assert.Equal(t, tc.expectedBWL, inst.BWL, fmt.Sprintf("For byte sequence %x, expected BWL %s, got %s\n", tc.Input, tc.expectedBWL, inst.BWL))
 		assert.Equal(t, len(tc.Input), inst.TotalBytes, fmt.Sprintf("For byte sequence %x, expected %d bytes, got %d bytes\n", tc.Input, len(tc.Input), inst.TotalBytes))
 	}
 }
@@ -1776,140 +1781,140 @@ func TestDecodeRangeCases(t *testing.T) {
 	}
 	testCases := []struct {
 		Input          []byte
-		ExpectedOpcode string
+		ExpectedOpcode opcode.Opcode
 		ByteToBVA      int
 		HLToBVA        HLToBVA
 		Range          []int
 	}{
 		{
 			Input:          []byte{0x7A, 0x1F, 0x00, 0x00, 0x00, 0x00},
-			ExpectedOpcode: "add",
+			ExpectedOpcode: opcode.Add,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
 		},
 		{
 			Input:          []byte{0x0A, 0xF0},
-			ExpectedOpcode: "add",
+			ExpectedOpcode: opcode.Add,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
 		},
 		{
 			Input:          []byte{0x0A, 0xF0},
-			ExpectedOpcode: "add",
+			ExpectedOpcode: opcode.Add,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
 		},
 		{
 			Input:          []byte{0x0B, 0x0F},
-			ExpectedOpcode: "adds",
+			ExpectedOpcode: opcode.Adds,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
 		},
 		{
 			Input:          []byte{0x0B, 0x8F},
-			ExpectedOpcode: "adds",
+			ExpectedOpcode: opcode.Adds,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
 		},
 		{
 			Input:          []byte{0x0B, 0x9F},
-			ExpectedOpcode: "adds",
+			ExpectedOpcode: opcode.Adds,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
 		},
 		{
 			Input:          []byte{0x7a, 0x6F, 0x00, 0x00, 0x00, 0x00},
-			ExpectedOpcode: "and",
+			ExpectedOpcode: opcode.And,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
 		},
 		{
 			Input:          []byte{0x01, 0xF0, 0x66, 0xF0},
-			ExpectedOpcode: "and",
+			ExpectedOpcode: opcode.And,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
 		},
 		{
 			Input:          []byte{0x01, 0xF0, 0x66, 0x0F},
-			ExpectedOpcode: "and",
+			ExpectedOpcode: opcode.And,
 			ByteToBVA:      3,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
 		},
 		{
 			Input:          []byte{0x76, 0xF0},
-			ExpectedOpcode: "band",
+			ExpectedOpcode: opcode.Band,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
 		},
 		{
 			Input:          []byte{0x7C, 0xF0, 0x76, 0x00},
-			ExpectedOpcode: "band",
+			ExpectedOpcode: opcode.Band,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
 		},
 		{
 			Input:          []byte{0x7C, 0x00, 0x76, 0x00},
-			ExpectedOpcode: "band",
+			ExpectedOpcode: opcode.Band,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
 		},
 		{
 			Input:          []byte{0x7E, 0x00, 0x76, 0x00},
-			ExpectedOpcode: "band",
+			ExpectedOpcode: opcode.Band,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
 		},
 		{
 			Input:          []byte{0x6A, 0x10, 0x00, 0x00, 0x76, 0xF0},
-			ExpectedOpcode: "band",
+			ExpectedOpcode: opcode.Band,
 			ByteToBVA:      5,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
 		},
 		{
 			Input:          []byte{0x6A, 0x30, 0x00, 0x00, 0x00, 0x00, 0x76, 0xF0},
-			ExpectedOpcode: "band",
+			ExpectedOpcode: opcode.Band,
 			ByteToBVA:      7,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
 		},
 		{
 			Input:          []byte{0x72, 0xF0},
-			ExpectedOpcode: "bclr",
+			ExpectedOpcode: opcode.Bclr,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
 		},
 		{
 			Input:          []byte{0x7D, 0xF0, 0x72, 0x00},
-			ExpectedOpcode: "bclr",
+			ExpectedOpcode: opcode.Bclr,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
 		},
 		{
 			Input:          []byte{0x7D, 0x00, 0x72, 0xF0},
-			ExpectedOpcode: "bclr",
+			ExpectedOpcode: opcode.Bclr,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
 		},
 		{
 			Input:          []byte{0x7F, 0x00, 0x72, 0xF0},
-			ExpectedOpcode: "bclr",
+			ExpectedOpcode: opcode.Bclr,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -1917,7 +1922,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 18 00 00 72 F0
 			Input:          []byte{0x6A, 0x18, 0x00, 0x00, 0x72, 0xF0},
-			ExpectedOpcode: "bclr",
+			ExpectedOpcode: opcode.Bclr,
 			ByteToBVA:      5,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -1925,14 +1930,14 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 38 00 00 00 00 72 F0
 			Input:          []byte{0x6A, 0x38, 0x00, 0x00, 0x00, 0x00, 0x72, 0xF0},
-			ExpectedOpcode: "bclr",
+			ExpectedOpcode: opcode.Bclr,
 			ByteToBVA:      7,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
 		},
 		{
 			Input:          []byte{0x7D, 0xF0, 0x62, 0x00},
-			ExpectedOpcode: "bclr",
+			ExpectedOpcode: opcode.Bclr,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -1940,7 +1945,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 76 F0
 			Input:          []byte{0x76, 0xF0},
-			ExpectedOpcode: "biand",
+			ExpectedOpcode: opcode.Biand,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -1948,7 +1953,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7C F0 76 D0
 			Input:          []byte{0x7C, 0xF0, 0x76, 0xD0},
-			ExpectedOpcode: "biand",
+			ExpectedOpcode: opcode.Biand,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -1956,7 +1961,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7C 00 76 F0
 			Input:          []byte{0x7C, 0x00, 0x76, 0xF0},
-			ExpectedOpcode: "biand",
+			ExpectedOpcode: opcode.Biand,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -1964,7 +1969,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7E 00 76 F0
 			Input:          []byte{0x7E, 0x00, 0x76, 0xF0},
-			ExpectedOpcode: "biand",
+			ExpectedOpcode: opcode.Biand,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -1972,7 +1977,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 10 00 00 76 F0
 			Input:          []byte{0x6A, 0x10, 0x00, 0x00, 0x76, 0xF0},
-			ExpectedOpcode: "biand",
+			ExpectedOpcode: opcode.Biand,
 			ByteToBVA:      5,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -1980,7 +1985,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 30 00 00 00 00 76 F0
 			Input:          []byte{0x6A, 0x30, 0x00, 0x00, 0x00, 0x00, 0x76, 0xF0},
-			ExpectedOpcode: "biand",
+			ExpectedOpcode: opcode.Biand,
 			ByteToBVA:      7,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -1988,7 +1993,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 77 F0
 			Input:          []byte{0x77, 0xF0},
-			ExpectedOpcode: "bild",
+			ExpectedOpcode: opcode.Bild,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -1996,7 +2001,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7C F0 77 F0
 			Input:          []byte{0x7C, 0xF0, 0x77, 0xF0},
-			ExpectedOpcode: "bild",
+			ExpectedOpcode: opcode.Bild,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2004,7 +2009,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7C 00 77 F0
 			Input:          []byte{0x7C, 0x00, 0x77, 0xF0},
-			ExpectedOpcode: "bild",
+			ExpectedOpcode: opcode.Bild,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -2012,7 +2017,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 10 00 00 77 F0
 			Input:          []byte{0x6A, 0x10, 0x00, 0x00, 0x77, 0xF0},
-			ExpectedOpcode: "bild",
+			ExpectedOpcode: opcode.Bild,
 			ByteToBVA:      5,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -2020,7 +2025,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 30 00 00 00 00 77 F0
 			Input:          []byte{0x6A, 0x30, 0x00, 0x00, 0x00, 0x00, 0x77, 0xF0},
-			ExpectedOpcode: "bild",
+			ExpectedOpcode: opcode.Bild,
 			ByteToBVA:      7,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -2028,7 +2033,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 74 F0
 			Input:          []byte{0x74, 0xF0},
-			ExpectedOpcode: "bior",
+			ExpectedOpcode: opcode.Bior,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -2036,7 +2041,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7C F0 74 F0
 			Input:          []byte{0x7C, 0xF0, 0x74, 0xF0},
-			ExpectedOpcode: "bior",
+			ExpectedOpcode: opcode.Bior,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2044,7 +2049,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7C 00 74 F0
 			Input:          []byte{0x7C, 0x00, 0x74, 0xF0},
-			ExpectedOpcode: "bior",
+			ExpectedOpcode: opcode.Bior,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -2052,7 +2057,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7E 00 74 F0
 			Input:          []byte{0x7E, 0x00, 0x74, 0xF0},
-			ExpectedOpcode: "bior",
+			ExpectedOpcode: opcode.Bior,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -2060,7 +2065,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 10 00 00 74 F0
 			Input:          []byte{0x6A, 0x10, 0x00, 0x00, 0x74, 0xF0},
-			ExpectedOpcode: "bior",
+			ExpectedOpcode: opcode.Bior,
 			ByteToBVA:      5,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -2068,7 +2073,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 30 00 00 00 00 74 F0
 			Input:          []byte{0x6A, 0x30, 0x00, 0x00, 0x00, 0x00, 0x74, 0xF0},
-			ExpectedOpcode: "bior",
+			ExpectedOpcode: opcode.Bior,
 			ByteToBVA:      7,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -2076,7 +2081,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 67 F0
 			Input:          []byte{0x67, 0xF0},
-			ExpectedOpcode: "bist",
+			ExpectedOpcode: opcode.Bist,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -2084,7 +2089,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7D F0 67 F0
 			Input:          []byte{0x7D, 0xF0, 0x67, 0xF0},
-			ExpectedOpcode: "bist",
+			ExpectedOpcode: opcode.Bist,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2092,7 +2097,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7D 00 67 F0
 			Input:          []byte{0x7D, 0x00, 0x67, 0xF0},
-			ExpectedOpcode: "bist",
+			ExpectedOpcode: opcode.Bist,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -2100,7 +2105,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7F 00 67 F0
 			Input:          []byte{0x7F, 0x00, 0x67, 0xF0},
-			ExpectedOpcode: "bist",
+			ExpectedOpcode: opcode.Bist,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -2108,7 +2113,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 18 00 00 67 F0
 			Input:          []byte{0x6A, 0x18, 0x00, 0x00, 0x67, 0xF0},
-			ExpectedOpcode: "bist",
+			ExpectedOpcode: opcode.Bist,
 			ByteToBVA:      5,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -2116,7 +2121,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 38 00 00 00 00 67 F0
 			Input:          []byte{0x6A, 0x38, 0x00, 0x00, 0x00, 0x00, 0x67, 0xF0},
-			ExpectedOpcode: "bist",
+			ExpectedOpcode: opcode.Bist,
 			ByteToBVA:      7,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -2124,7 +2129,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 75 F0
 			Input:          []byte{0x75, 0xF0},
-			ExpectedOpcode: "bixor",
+			ExpectedOpcode: opcode.Bixor,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -2132,7 +2137,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7C F0 75 F0
 			Input:          []byte{0x7C, 0xF0, 0x75, 0xF0},
-			ExpectedOpcode: "bixor",
+			ExpectedOpcode: opcode.Bixor,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2140,7 +2145,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7C 00 75 F0
 			Input:          []byte{0x7C, 0x00, 0x75, 0xF0},
-			ExpectedOpcode: "bixor",
+			ExpectedOpcode: opcode.Bixor,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -2148,7 +2153,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7E 00 75 F0
 			Input:          []byte{0x7E, 0x00, 0x75, 0xF0},
-			ExpectedOpcode: "bixor",
+			ExpectedOpcode: opcode.Bixor,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -2156,7 +2161,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 10 00 00 75 F0
 			Input:          []byte{0x6A, 0x10, 0x00, 0x00, 0x75, 0xF0},
-			ExpectedOpcode: "bixor",
+			ExpectedOpcode: opcode.Bixor,
 			ByteToBVA:      5,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -2164,7 +2169,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 30 00 00 00 00 75 F0
 			Input:          []byte{0x6A, 0x30, 0x00, 0x00, 0x00, 0x00, 0x75, 0xF0},
-			ExpectedOpcode: "bixor",
+			ExpectedOpcode: opcode.Bixor,
 			ByteToBVA:      7,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -2172,7 +2177,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 77 ?0
 			Input:          []byte{0x77, 0x00},
-			ExpectedOpcode: "bld",
+			ExpectedOpcode: opcode.Bld,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2180,7 +2185,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7C F0 77 00
 			Input:          []byte{0x7C, 0xF0, 0x77, 0x00},
-			ExpectedOpcode: "bld",
+			ExpectedOpcode: opcode.Bld,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2188,7 +2193,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7C 00 77 F0
 			Input:          []byte{0x7C, 0x00, 0x77, 0xF0},
-			ExpectedOpcode: "bld",
+			ExpectedOpcode: opcode.Bld,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2196,7 +2201,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7E 00 77 F0
 			Input:          []byte{0x7E, 0x00, 0x77, 0xF0},
-			ExpectedOpcode: "bld",
+			ExpectedOpcode: opcode.Bld,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2204,7 +2209,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 10 00 00 77 F0
 			Input:          []byte{0x6A, 0x10, 0x00, 0x00, 0x77, 0xF0},
-			ExpectedOpcode: "bld",
+			ExpectedOpcode: opcode.Bld,
 			ByteToBVA:      5,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2212,7 +2217,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 30 00 00 00 00 77 F0
 			Input:          []byte{0x6A, 0x30, 0x00, 0x00, 0x00, 0x00, 0x77, 0xF0},
-			ExpectedOpcode: "bld",
+			ExpectedOpcode: opcode.Bld,
 			ByteToBVA:      7,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2220,7 +2225,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 71 F0
 			Input:          []byte{0x71, 0xF0},
-			ExpectedOpcode: "bnot",
+			ExpectedOpcode: opcode.Bnot,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2228,7 +2233,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7D F0 71 00
 			Input:          []byte{0x7D, 0xF0, 0x71, 0x00},
-			ExpectedOpcode: "bnot",
+			ExpectedOpcode: opcode.Bnot,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2236,7 +2241,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7D 00 71 F0
 			Input:          []byte{0x7D, 0x00, 0x71, 0xF0},
-			ExpectedOpcode: "bnot",
+			ExpectedOpcode: opcode.Bnot,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2244,7 +2249,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7F 00 71 F0
 			Input:          []byte{0x7F, 0x00, 0x71, 0xF0},
-			ExpectedOpcode: "bnot",
+			ExpectedOpcode: opcode.Bnot,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2252,7 +2257,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 18 00 00 71 F0
 			Input:          []byte{0x6A, 0x18, 0x00, 0x00, 0x71, 0xF0},
-			ExpectedOpcode: "bnot",
+			ExpectedOpcode: opcode.Bnot,
 			ByteToBVA:      5,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2260,7 +2265,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 38 00 00 00 00 71 F0
 			Input:          []byte{0x6A, 0x38, 0x00, 0x00, 0x00, 0x00, 0x71, 0xF0},
-			ExpectedOpcode: "bnot",
+			ExpectedOpcode: opcode.Bnot,
 			ByteToBVA:      7,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2268,7 +2273,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7D F0 61 00
 			Input:          []byte{0x7D, 0xF0, 0x61, 0x00},
-			ExpectedOpcode: "bnot",
+			ExpectedOpcode: opcode.Bnot,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2276,7 +2281,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 74 F0
 			Input:          []byte{0x74, 0xF0},
-			ExpectedOpcode: "bor",
+			ExpectedOpcode: opcode.Bor,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2284,7 +2289,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7C F0 74 00
 			Input:          []byte{0x7C, 0xF0, 0x74, 0x00},
-			ExpectedOpcode: "bor",
+			ExpectedOpcode: opcode.Bor,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2292,7 +2297,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7C 00 74 F0
 			Input:          []byte{0x7C, 0x00, 0x74, 0xF0},
-			ExpectedOpcode: "bor",
+			ExpectedOpcode: opcode.Bor,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2300,7 +2305,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7E 00 74 F0
 			Input:          []byte{0x7E, 0x00, 0x74, 0xF0},
-			ExpectedOpcode: "bor",
+			ExpectedOpcode: opcode.Bor,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2308,7 +2313,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 10 00 00 74 F0
 			Input:          []byte{0x6A, 0x10, 0x00, 0x00, 0x74, 0xF0},
-			ExpectedOpcode: "bor",
+			ExpectedOpcode: opcode.Bor,
 			ByteToBVA:      5,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2316,7 +2321,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 30 00 00 00 00 74 F0
 			Input:          []byte{0x6A, 0x30, 0x00, 0x00, 0x00, 0x00, 0x74, 0xF0},
-			ExpectedOpcode: "bor",
+			ExpectedOpcode: opcode.Bor,
 			ByteToBVA:      7,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2324,7 +2329,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 70 F0
 			Input:          []byte{0x70, 0xF0},
-			ExpectedOpcode: "bset",
+			ExpectedOpcode: opcode.Bset,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2332,7 +2337,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7D F0 70 00
 			Input:          []byte{0x7D, 0xF0, 0x70, 0x00},
-			ExpectedOpcode: "bset",
+			ExpectedOpcode: opcode.Bset,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2340,7 +2345,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7D 00 70 F0
 			Input:          []byte{0x7D, 0x00, 0x70, 0xF0},
-			ExpectedOpcode: "bset",
+			ExpectedOpcode: opcode.Bset,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2348,7 +2353,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7F 00 70 F0
 			Input:          []byte{0x7F, 0x00, 0x70, 0xF0},
-			ExpectedOpcode: "bset",
+			ExpectedOpcode: opcode.Bset,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2356,7 +2361,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 18 00 00 70 F0
 			Input:          []byte{0x6A, 0x18, 0x00, 0x00, 0x70, 0xF0},
-			ExpectedOpcode: "bset",
+			ExpectedOpcode: opcode.Bset,
 			ByteToBVA:      5,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2364,7 +2369,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 38 00 00 00 00 70 F0
 			Input:          []byte{0x6A, 0x38, 0x00, 0x00, 0x00, 0x00, 0x70, 0xF0},
-			ExpectedOpcode: "bset",
+			ExpectedOpcode: opcode.Bset,
 			ByteToBVA:      7,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2372,7 +2377,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7D F0 60 00
 			Input:          []byte{0x7D, 0xF0, 0x60, 0x00},
-			ExpectedOpcode: "bset",
+			ExpectedOpcode: opcode.Bset,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2380,7 +2385,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 67 F0
 			Input:          []byte{0x67, 0xF0},
-			ExpectedOpcode: "bst",
+			ExpectedOpcode: opcode.Bst,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2388,7 +2393,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7D F0 67 00
 			Input:          []byte{0x7D, 0xF0, 0x67, 0x00},
-			ExpectedOpcode: "bst",
+			ExpectedOpcode: opcode.Bst,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2396,7 +2401,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7D 00 67 F0
 			Input:          []byte{0x7D, 0x00, 0x67, 0xF0},
-			ExpectedOpcode: "bst",
+			ExpectedOpcode: opcode.Bst,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2404,7 +2409,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7F 00 67 F0
 			Input:          []byte{0x7F, 0x00, 0x67, 0xF0},
-			ExpectedOpcode: "bst",
+			ExpectedOpcode: opcode.Bst,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2412,7 +2417,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 18 00 00 67 F0
 			Input:          []byte{0x6A, 0x18, 0x00, 0x00, 0x67, 0xF0},
-			ExpectedOpcode: "bst",
+			ExpectedOpcode: opcode.Bst,
 			ByteToBVA:      5,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2420,7 +2425,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 38 00 00 00 00 67 F0
 			Input:          []byte{0x6A, 0x38, 0x00, 0x00, 0x00, 0x00, 0x67, 0xF0},
-			ExpectedOpcode: "bst",
+			ExpectedOpcode: opcode.Bst,
 			ByteToBVA:      7,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2428,7 +2433,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 73 F0
 			Input:          []byte{0x73, 0xF0},
-			ExpectedOpcode: "btst",
+			ExpectedOpcode: opcode.Btst,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2436,7 +2441,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7C F0 73 00
 			Input:          []byte{0x7C, 0xF0, 0x73, 0x00},
-			ExpectedOpcode: "btst",
+			ExpectedOpcode: opcode.Btst,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2444,7 +2449,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7C 00 73 F0
 			Input:          []byte{0x7C, 0x00, 0x73, 0xF0},
-			ExpectedOpcode: "btst",
+			ExpectedOpcode: opcode.Btst,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2452,7 +2457,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7E 00 73 F0
 			Input:          []byte{0x7E, 0x00, 0x73, 0xF0},
-			ExpectedOpcode: "btst",
+			ExpectedOpcode: opcode.Btst,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2460,7 +2465,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 10 00 00 73 F0
 			Input:          []byte{0x6A, 0x10, 0x00, 0x00, 0x73, 0xF0},
-			ExpectedOpcode: "btst",
+			ExpectedOpcode: opcode.Btst,
 			ByteToBVA:      5,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2468,7 +2473,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 30 00 00 00 00 73 F0
 			Input:          []byte{0x6A, 0x30, 0x00, 0x00, 0x00, 0x00, 0x73, 0xF0},
-			ExpectedOpcode: "btst",
+			ExpectedOpcode: opcode.Btst,
 			ByteToBVA:      7,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2476,7 +2481,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7C F0 63 00
 			Input:          []byte{0x7C, 0xF0, 0x63, 0x00},
-			ExpectedOpcode: "btst",
+			ExpectedOpcode: opcode.Btst,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2484,7 +2489,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 75 F0
 			Input:          []byte{0x75, 0xF0},
-			ExpectedOpcode: "bxor",
+			ExpectedOpcode: opcode.Bxor,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2492,7 +2497,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7C F0 75 00
 			Input:          []byte{0x7C, 0xF0, 0x75, 0x00},
-			ExpectedOpcode: "bxor",
+			ExpectedOpcode: opcode.Bxor,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2500,7 +2505,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7C 00 75 F0
 			Input:          []byte{0x7C, 0x00, 0x75, 0xF0},
-			ExpectedOpcode: "bxor",
+			ExpectedOpcode: opcode.Bxor,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2508,7 +2513,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7E 00 75 F0
 			Input:          []byte{0x7E, 0x00, 0x75, 0xF0},
-			ExpectedOpcode: "bxor",
+			ExpectedOpcode: opcode.Bxor,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2516,7 +2521,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 10 00 00 75 F0
 			Input:          []byte{0x6A, 0x10, 0x00, 0x00, 0x75, 0xF0},
-			ExpectedOpcode: "bxor",
+			ExpectedOpcode: opcode.Bxor,
 			ByteToBVA:      5,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2524,7 +2529,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6A 30 00 00 00 00 75 F0
 			Input:          []byte{0x6A, 0x30, 0x00, 0x00, 0x00, 0x00, 0x75, 0xF0},
-			ExpectedOpcode: "bxor",
+			ExpectedOpcode: opcode.Bxor,
 			ByteToBVA:      7,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2532,7 +2537,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7A 2F 00 00 00 00
 			Input:          []byte{0x7A, 0x2F, 0x00, 0x00, 0x00},
-			ExpectedOpcode: "cmp",
+			ExpectedOpcode: opcode.Cmp,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2540,7 +2545,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 1F F0
 			Input:          []byte{0x1F, 0xF0},
-			ExpectedOpcode: "cmp",
+			ExpectedOpcode: opcode.Cmp,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -2548,7 +2553,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 1F FF
 			Input:          []byte{0x1F, 0xFF},
-			ExpectedOpcode: "cmp",
+			ExpectedOpcode: opcode.Cmp,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2556,7 +2561,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 1B 7F
 			Input:          []byte{0x1B, 0x7F},
-			ExpectedOpcode: "dec",
+			ExpectedOpcode: opcode.Dec,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2564,7 +2569,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 1B FF
 			Input:          []byte{0x1B, 0xFF},
-			ExpectedOpcode: "dec",
+			ExpectedOpcode: opcode.Dec,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2572,7 +2577,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 D0 53 0F
 			Input:          []byte{0x01, 0xD0, 0x53, 0x0F},
-			ExpectedOpcode: "divxs",
+			ExpectedOpcode: opcode.Divxs,
 			ByteToBVA:      3,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2580,7 +2585,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 53 0F
 			Input:          []byte{0x53, 0x0F},
-			ExpectedOpcode: "divxu",
+			ExpectedOpcode: opcode.Divxu,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2588,7 +2593,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 17 FF
 			Input:          []byte{0x17, 0xFF},
-			ExpectedOpcode: "exts",
+			ExpectedOpcode: opcode.Exts,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2596,7 +2601,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 17 7F
 			Input:          []byte{0x17, 0x7F},
-			ExpectedOpcode: "extu",
+			ExpectedOpcode: opcode.Extu,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2604,7 +2609,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 0B 7F
 			Input:          []byte{0x0B, 0x7F},
-			ExpectedOpcode: "inc",
+			ExpectedOpcode: opcode.Inc,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2612,7 +2617,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 59 F0
 			Input:          []byte{0x59, 0xF0},
-			ExpectedOpcode: "jmp",
+			ExpectedOpcode: opcode.Jmp,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2620,7 +2625,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 5D F0
 			Input:          []byte{0x5D, 0xF0},
-			ExpectedOpcode: "jsr",
+			ExpectedOpcode: opcode.Jsr,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2628,7 +2633,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 40 69 F0
 			Input:          []byte{0x01, 0x40, 0x69, 0xF0},
-			ExpectedOpcode: "ldc",
+			ExpectedOpcode: opcode.Ldc,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2636,7 +2641,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 40 6F F0 00 00
 			Input:          []byte{0x01, 0x40, 0x6F, 0xF0, 0x00, 0x00},
-			ExpectedOpcode: "ldc",
+			ExpectedOpcode: opcode.Ldc,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2644,7 +2649,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 40 78 F0 6B 20 FF FF FF FF
 			Input:          []byte{0x01, 0x40, 0x78, 0xF0, 0x6B, 0x20, 0xFF, 0xFF, 0xFF, 0xFF},
-			ExpectedOpcode: "ldc",
+			ExpectedOpcode: opcode.Ldc,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2652,7 +2657,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 40 6D F0
 			Input:          []byte{0x01, 0x40, 0x6D, 0xF0},
-			ExpectedOpcode: "ldc",
+			ExpectedOpcode: opcode.Ldc,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2661,7 +2666,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 41 69 F0
 			Input:          []byte{0x01, 0x41, 0x69, 0xF0},
-			ExpectedOpcode: "ldc",
+			ExpectedOpcode: opcode.Ldc,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2669,7 +2674,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 41 6F F0 00 00
 			Input:          []byte{0x01, 0x41, 0x6F, 0xF0, 0x00, 0x00},
-			ExpectedOpcode: "ldc",
+			ExpectedOpcode: opcode.Ldc,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2677,7 +2682,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 41 78 F0 6B 20 FF FF FF FF
 			Input:          []byte{0x01, 0x41, 0x78, 0xF0, 0x6B, 0x20, 0xFF, 0xFF, 0xFF, 0xFF},
-			ExpectedOpcode: "ldc",
+			ExpectedOpcode: opcode.Ldc,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2685,7 +2690,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 41 6D F0
 			Input:          []byte{0x01, 0x41, 0x6D, 0xF0},
-			ExpectedOpcode: "ldc",
+			ExpectedOpcode: opcode.Ldc,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2693,7 +2698,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 10 6D 7F
 			Input:          []byte{0x01, 0x10, 0x6D, 0x7F},
-			ExpectedOpcode: "ldm",
+			ExpectedOpcode: opcode.Ldm,
 			ByteToBVA:      3,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2701,7 +2706,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 0F F0
 			Input:          []byte{0x0F, 0xF0},
-			ExpectedOpcode: "mov",
+			ExpectedOpcode: opcode.Mov,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -2709,7 +2714,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 0F F0
 			Input:          []byte{0x0F, 0xF0},
-			ExpectedOpcode: "mov",
+			ExpectedOpcode: opcode.Mov,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2717,7 +2722,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 68 F0
 			Input:          []byte{0x68, 0xF0},
-			ExpectedOpcode: "mov",
+			ExpectedOpcode: opcode.Mov,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToF],
@@ -2725,7 +2730,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6E F0 00 00
 			Input:          []byte{0x6E, 0xF0, 0x00, 0x00},
-			ExpectedOpcode: "mov",
+			ExpectedOpcode: opcode.Mov,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToF],
@@ -2733,7 +2738,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 78 F0 6A 20 00 00 00 00
 			Input:          []byte{0x78, 0xF0, 0x6A, 0x20, 0x00, 0x00, 0x00, 0x00},
-			ExpectedOpcode: "mov",
+			ExpectedOpcode: opcode.Mov,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2741,7 +2746,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6C F0
 			Input:          []byte{0x6C, 0xF0},
-			ExpectedOpcode: "mov",
+			ExpectedOpcode: opcode.Mov,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToF],
@@ -2749,7 +2754,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 69 F0
 			Input:          []byte{0x69, 0xF0},
-			ExpectedOpcode: "mov",
+			ExpectedOpcode: opcode.Mov,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToF],
@@ -2757,7 +2762,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 6F F0 00 00
 			Input:          []byte{0x6F, 0xF0, 0x00, 0x00},
-			ExpectedOpcode: "mov",
+			ExpectedOpcode: opcode.Mov,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToF],
@@ -2765,7 +2770,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 78 F0 6B 20 00 00 00 00
 			Input:          []byte{0x78, 0xF0, 0x6B, 0x20, 0x00, 0x00, 0x00, 0x00},
-			ExpectedOpcode: "mov",
+			ExpectedOpcode: opcode.Mov,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2774,7 +2779,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		// {
 		// 	// 6D F0
 		// 	Input:          []byte{0x6D, 0xF0},
-		// 	ExpectedOpcode: "mov", // rly mov
+		// 	ExpectedOpcode: opcode.Mov, // rly mov
 		// 	ByteToBVA:      1,
 		// 	HLToBVA:        H,
 		// 	Range:          ranges[zeroToSix],
@@ -2782,7 +2787,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		// {
 		// 	// 6D F0
 		// 	Input:          []byte{0x6D, 0xF0},
-		// 	ExpectedOpcode: "push", // rly mov
+		// 	ExpectedOpcode: opcode.Push, // rly mov
 		// 	ByteToBVA:      1,
 		// 	HLToBVA:        H,
 		// 	Range:          ranges[eightToE],
@@ -2790,7 +2795,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7A 0F
 			Input:          []byte{0x7A, 0x0F},
-			ExpectedOpcode: "mov",
+			ExpectedOpcode: opcode.Mov,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2798,7 +2803,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 00 69 F0
 			Input:          []byte{0x01, 0x00, 0x69, 0xF0},
-			ExpectedOpcode: "mov",
+			ExpectedOpcode: opcode.Mov,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToF],
@@ -2806,7 +2811,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 00 6F F0
 			Input:          []byte{0x01, 0x00, 0x6F, 0xF0},
-			ExpectedOpcode: "mov",
+			ExpectedOpcode: opcode.Mov,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToF],
@@ -2814,7 +2819,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 00 69 0F
 			Input:          []byte{0x01, 0x00, 0x69, 0x0F},
-			ExpectedOpcode: "mov",
+			ExpectedOpcode: opcode.Mov,
 			ByteToBVA:      3,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2822,7 +2827,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 00 78 F0 6B A0 00 00 00 00
 			Input:          []byte{0x01, 0x00, 0x78, 0xF0, 0x6B, 0xA0, 0x00, 0x00, 0x00, 0x00},
-			ExpectedOpcode: "mov",
+			ExpectedOpcode: opcode.Mov,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2830,7 +2835,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 00 78 00 6B AF 00 00 00 00
 			Input:          []byte{0x01, 0x00, 0x78, 0x00, 0x6B, 0xAF, 0x00, 0x00, 0x00, 0x00},
-			ExpectedOpcode: "mov",
+			ExpectedOpcode: opcode.Mov,
 			ByteToBVA:      5,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2838,7 +2843,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 00 6D F0
 			Input:          []byte{0x01, 0x00, 0x6D, 0xF0},
-			ExpectedOpcode: "mov",
+			ExpectedOpcode: opcode.Mov,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSix],
@@ -2846,7 +2851,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 00 6D FF
 			Input:          []byte{0x01, 0x00, 0x6D, 0xFF},
-			ExpectedOpcode: "push",
+			ExpectedOpcode: opcode.Push,
 			ByteToBVA:      3,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2854,7 +2859,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 C0 52 0F
 			Input:          []byte{0x01, 0xC0, 0x52, 0x0F},
-			ExpectedOpcode: "mulxs",
+			ExpectedOpcode: opcode.Mulxs,
 			ByteToBVA:      3,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2862,7 +2867,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 52 0F
 			Input:          []byte{0x52, 0x0F},
-			ExpectedOpcode: "mulxu",
+			ExpectedOpcode: opcode.Mulxu,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2870,7 +2875,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 17 BF
 			Input:          []byte{0x17, 0xBF},
-			ExpectedOpcode: "neg",
+			ExpectedOpcode: opcode.Neg,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2878,7 +2883,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 17 3F
 			Input:          []byte{0x17, 0x3F},
-			ExpectedOpcode: "not",
+			ExpectedOpcode: opcode.Not,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2886,7 +2891,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7A 4F 00 00 00 00
 			Input:          []byte{0x7A, 0x4F, 0x00, 0x00, 0x00, 0x00},
-			ExpectedOpcode: "or",
+			ExpectedOpcode: opcode.Or,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2894,7 +2899,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 F0 64 F0
 			Input:          []byte{0x01, 0xF0, 0x64, 0xF0},
-			ExpectedOpcode: "or",
+			ExpectedOpcode: opcode.Or,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -2902,7 +2907,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 F0 64 0F
 			Input:          []byte{0x01, 0xF0, 0x64, 0x0F},
-			ExpectedOpcode: "or",
+			ExpectedOpcode: opcode.Or,
 			ByteToBVA:      3,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2910,7 +2915,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 12 BF
 			Input:          []byte{0x12, 0xBF},
-			ExpectedOpcode: "rotl",
+			ExpectedOpcode: opcode.Rotl,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2918,7 +2923,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 12 FF
 			Input:          []byte{0x12, 0xFF},
-			ExpectedOpcode: "rotl",
+			ExpectedOpcode: opcode.Rotl,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2926,7 +2931,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 13 BF
 			Input:          []byte{0x13, 0xBF},
-			ExpectedOpcode: "rotr",
+			ExpectedOpcode: opcode.Rotr,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2934,7 +2939,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 13 FF
 			Input:          []byte{0x13, 0xFF},
-			ExpectedOpcode: "rotr",
+			ExpectedOpcode: opcode.Rotr,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2942,7 +2947,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 12 3F
 			Input:          []byte{0x12, 0x3F},
-			ExpectedOpcode: "rotxl",
+			ExpectedOpcode: opcode.Rotxl,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2950,7 +2955,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 12 7F
 			Input:          []byte{0x12, 0x7F},
-			ExpectedOpcode: "rotxl",
+			ExpectedOpcode: opcode.Rotxl,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2958,7 +2963,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 13 3F
 			Input:          []byte{0x13, 0x3F},
-			ExpectedOpcode: "rotxr",
+			ExpectedOpcode: opcode.Rotxr,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2966,7 +2971,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 13 7F
 			Input:          []byte{0x13, 0x7F},
-			ExpectedOpcode: "rotxr",
+			ExpectedOpcode: opcode.Rotxr,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2974,7 +2979,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 10 BF
 			Input:          []byte{0x10, 0xBF},
-			ExpectedOpcode: "shal",
+			ExpectedOpcode: opcode.Shal,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2982,7 +2987,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 10 FF
 			Input:          []byte{0x10, 0xFF},
-			ExpectedOpcode: "shal",
+			ExpectedOpcode: opcode.Shal,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2990,7 +2995,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 11 BF
 			Input:          []byte{0x11, 0xBF},
-			ExpectedOpcode: "shar",
+			ExpectedOpcode: opcode.Shar,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -2998,7 +3003,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 11 FF
 			Input:          []byte{0x11, 0xFF},
-			ExpectedOpcode: "shar",
+			ExpectedOpcode: opcode.Shar,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -3007,7 +3012,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 10 3F
 			Input:          []byte{0x10, 0x3F},
-			ExpectedOpcode: "shll",
+			ExpectedOpcode: opcode.Shll,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -3015,7 +3020,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 10 7F
 			Input:          []byte{0x10, 0x7F},
-			ExpectedOpcode: "shll",
+			ExpectedOpcode: opcode.Shll,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -3023,7 +3028,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 11 3F
 			Input:          []byte{0x11, 0x3F},
-			ExpectedOpcode: "shlr",
+			ExpectedOpcode: opcode.Shlr,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -3031,7 +3036,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 11 7F
 			Input:          []byte{0x11, 0x7F},
-			ExpectedOpcode: "shlr",
+			ExpectedOpcode: opcode.Shlr,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -3039,7 +3044,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 40 69 F0
 			Input:          []byte{0x01, 0x40, 0x69, 0xF0},
-			ExpectedOpcode: "stc",
+			ExpectedOpcode: opcode.Stc,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -3047,7 +3052,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 40 6F F0 00 00
 			Input:          []byte{0x01, 0x40, 0x6F, 0xF0, 0x00, 0x00},
-			ExpectedOpcode: "stc",
+			ExpectedOpcode: opcode.Stc,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -3055,7 +3060,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 40 78 F0 6B A0 FF FF FF FF
 			Input:          []byte{0x01, 0x40, 0x78, 0xF0, 0x6B, 0xA0, 0xFF, 0xFF, 0xFF, 0xFF},
-			ExpectedOpcode: "stc",
+			ExpectedOpcode: opcode.Stc,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -3063,7 +3068,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 40 6D F0
 			Input:          []byte{0x01, 0x40, 0x6D, 0xF0},
-			ExpectedOpcode: "stc",
+			ExpectedOpcode: opcode.Stc,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -3072,7 +3077,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 41 69 F0
 			Input:          []byte{0x01, 0x41, 0x69, 0xF0},
-			ExpectedOpcode: "stc",
+			ExpectedOpcode: opcode.Stc,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -3080,7 +3085,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 41 6F F0 00 00
 			Input:          []byte{0x01, 0x41, 0x6F, 0xF0, 0x00, 0x00},
-			ExpectedOpcode: "stc",
+			ExpectedOpcode: opcode.Stc,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -3088,7 +3093,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 41 78 F0 6B A0 FF FF FF FF
 			Input:          []byte{0x01, 0x41, 0x78, 0xF0, 0x6B, 0xA0, 0xFF, 0xFF, 0xFF, 0xFF},
-			ExpectedOpcode: "stc",
+			ExpectedOpcode: opcode.Stc,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -3096,7 +3101,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 41 6D F0
 			Input:          []byte{0x01, 0x41, 0x6D, 0xF0},
-			ExpectedOpcode: "stc",
+			ExpectedOpcode: opcode.Stc,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -3104,7 +3109,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 10 6D FF
 			Input:          []byte{0x01, 0x10, 0x6D, 0xFF},
-			ExpectedOpcode: "stm",
+			ExpectedOpcode: opcode.Stm,
 			ByteToBVA:      3,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -3112,7 +3117,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 20 6D FF
 			Input:          []byte{0x01, 0x20, 0x6D, 0xFF},
-			ExpectedOpcode: "stm",
+			ExpectedOpcode: opcode.Stm,
 			ByteToBVA:      3,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -3120,7 +3125,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 30 6D FF
 			Input:          []byte{0x01, 0x30, 0x6D, 0xFF},
-			ExpectedOpcode: "stm",
+			ExpectedOpcode: opcode.Stm,
 			ByteToBVA:      3,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -3128,7 +3133,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7A 3F 00 00 00 00
 			Input:          []byte{0x7A, 0x3F, 0x00, 0x00, 0x00, 0x00},
-			ExpectedOpcode: "sub",
+			ExpectedOpcode: opcode.Sub,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -3136,7 +3141,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 1A F0
 			Input:          []byte{0x1A, 0xF0},
-			ExpectedOpcode: "sub",
+			ExpectedOpcode: opcode.Sub,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[eightToF],
@@ -3144,7 +3149,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 1A FF
 			Input:          []byte{0x1A, 0xFF},
-			ExpectedOpcode: "sub",
+			ExpectedOpcode: opcode.Sub,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -3152,7 +3157,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 1B 0F
 			Input:          []byte{0x1B, 0x0F},
-			ExpectedOpcode: "subs",
+			ExpectedOpcode: opcode.Subs,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -3160,7 +3165,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 1B 8F
 			Input:          []byte{0x1B, 0x8F},
-			ExpectedOpcode: "subs",
+			ExpectedOpcode: opcode.Subs,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -3168,7 +3173,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 1B 9F
 			Input:          []byte{0x1B, 0x9F},
-			ExpectedOpcode: "subs",
+			ExpectedOpcode: opcode.Subs,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -3176,7 +3181,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 E0 7B FC
 			Input:          []byte{0x01, 0xE0, 0x7B, 0xFC},
-			ExpectedOpcode: "tas",
+			ExpectedOpcode: opcode.Tas,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -3184,7 +3189,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 57 F0
 			Input:          []byte{0x57, 0xF0},
-			ExpectedOpcode: "trapa",
+			ExpectedOpcode: opcode.Trapa,
 			ByteToBVA:      1,
 			HLToBVA:        H,
 			Range:          ranges[zeroTo3],
@@ -3192,7 +3197,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 7A 5F 00 00 00 00
 			Input:          []byte{0x7A, 0x5F, 0x00, 0x00, 0x00, 0x00},
-			ExpectedOpcode: "xor",
+			ExpectedOpcode: opcode.Xor,
 			ByteToBVA:      1,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -3200,7 +3205,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 F0 65 F0
 			Input:          []byte{0x01, 0xF0, 0x65, 0xF0},
-			ExpectedOpcode: "xor",
+			ExpectedOpcode: opcode.Xor,
 			ByteToBVA:      3,
 			HLToBVA:        H,
 			Range:          ranges[zeroToSeven],
@@ -3208,7 +3213,7 @@ func TestDecodeRangeCases(t *testing.T) {
 		{
 			// 01 F0 65 0F
 			Input:          []byte{0x01, 0xF0, 0x65, 0x0F},
-			ExpectedOpcode: "xor",
+			ExpectedOpcode: opcode.Xor,
 			ByteToBVA:      3,
 			HLToBVA:        L,
 			Range:          ranges[zeroToSeven],
@@ -3240,18 +3245,4 @@ func TestDecodeRangeCases(t *testing.T) {
 			}
 		}
 	}
-}
-
-func BWLToString(bwl disassembler.Size) string {
-	switch bwl {
-	case disassembler.Byte:
-		return "Byte"
-	case disassembler.Word:
-		return "Word"
-	case disassembler.Longword:
-		return "Long"
-	case disassembler.Unset:
-		return "Unset"
-	}
-	return ""
 }
