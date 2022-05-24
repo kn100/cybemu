@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDetermineOperandTypeAndSetData(t *testing.T) {
+func TestDetermineOperandTypeAndSetDataRegisterDirect(t *testing.T) {
 	testCases := []struct {
 		instruction         instruction.Inst
 		expectedOperandType operand.OperandType
@@ -1473,6 +1473,331 @@ func TestDetermineOperandTypeAndSetData(t *testing.T) {
 			expectedRegDst:      nil,
 			expectedOperandType: operand.Unknown,
 			expectedString:      "invalid :(",
+		},
+	}
+	for _, tc := range testCases {
+		tc.instruction.DetermineOperandTypeAndSetData()
+		assert.Equal(t, tc.expectedOperandType, tc.instruction.OperandType, "expected operand type to be %s, got %s", tc.expectedOperandType, tc.instruction.OperandType)
+		assert.Equal(t, tc.expectedRegSrc, tc.instruction.RegSrc, "expected RegSrc %v, got %v", tc.expectedRegSrc, tc.instruction.RegSrc)
+		assert.Equal(t, tc.expectedRegDst, tc.instruction.RegDst, "expected RegDst %v, got %v", tc.expectedRegDst, tc.instruction.RegDst)
+		assert.Equal(t, tc.expectedString, tc.instruction.String())
+
+	}
+}
+
+func TestDetermineOperandTypeAndSetDataRegisterIndirect(t *testing.T) {
+	testCases := []struct {
+		instruction         instruction.Inst
+		expectedOperandType operand.OperandType
+		expectedRegSrc      []byte
+		expectedRegDst      []byte
+		expectedString      string
+	}{
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7C, 0x20, 0x76, 0x40},
+				Opcode:         opcode.Band,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.Ix_AR32,
+			expectedRegDst:      []byte{0x02},
+			expectedString:      "band #4, @er2",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7D, 0x40, 0x72, 0x60},
+				Opcode:         opcode.Bclr,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.Ix_AR32,
+			expectedRegDst:      []byte{0x04},
+			expectedString:      "bclr #6, @er4",
+		},
+		// Skipping BCLR `7D 30 62 40` as I don't know what operand type it is.
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7C, 0x40, 0x76, 0xF0},
+				Opcode:         opcode.Biand,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.Ix_AR32,
+			expectedRegDst:      []byte{0x04},
+			expectedString:      "biand #7, @er4",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7C, 0x40, 0x77, 0xF0},
+				Opcode:         opcode.Bild,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.Ix_AR32,
+			expectedRegDst:      []byte{0x04},
+			expectedString:      "bild #7, @er4",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7C, 0x40, 0x74, 0xF0},
+				Opcode:         opcode.Bior,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.Ix_AR32,
+			expectedRegDst:      []byte{0x04},
+			expectedString:      "bior #7, @er4",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7D, 0x40, 0x67, 0xF0},
+				Opcode:         opcode.Bist,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.Ix_AR32,
+			expectedRegDst:      []byte{0x04},
+			expectedString:      "bist #7, @er4",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7C, 0x40, 0x75, 0xF0},
+				Opcode:         opcode.Bixor,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.Ix_AR32,
+			expectedRegDst:      []byte{0x04},
+			expectedString:      "bixor #7, @er4",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7C, 0x40, 0x77, 0x70},
+				Opcode:         opcode.Bld,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.Ix_AR32,
+			expectedRegDst:      []byte{0x04},
+			expectedString:      "bld #7, @er4",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7D, 0x40, 0x71, 0x70},
+				Opcode:         opcode.Bnot,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.Ix_AR32,
+			expectedRegDst:      []byte{0x04},
+			expectedString:      "bnot #7, @er4",
+		},
+		// Skipping BNOT Rn, @Erd, 7D 30 61 50 as I don't know what operand type it is.
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7C, 0x40, 0x74, 0x70},
+				Opcode:         opcode.Bor,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.Ix_AR32,
+			expectedRegDst:      []byte{0x04},
+			expectedString:      "bor #7, @er4",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7D, 0x40, 0x70, 0x70},
+				Opcode:         opcode.Bset,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.Ix_AR32,
+			expectedRegDst:      []byte{0x04},
+			expectedString:      "bset #7, @er4",
+		},
+		// Skipping BSET 7D 30 60 50
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7D, 0x40, 0x67, 0x70},
+				Opcode:         opcode.Bst,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.Ix_AR32,
+			expectedRegDst:      []byte{0x04},
+			expectedString:      "bst #7, @er4",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7C, 0x40, 0x73, 0x70},
+				Opcode:         opcode.Btst,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.Ix_AR32,
+			expectedRegDst:      []byte{0x04},
+			expectedString:      "btst #7, @er4",
+		},
+		// Skipping BTST 7C 30 63 50
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7C, 0x40, 0x73, 0x70},
+				Opcode:         opcode.Bxor,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.Ix_AR32,
+			expectedRegDst:      []byte{0x04},
+			expectedString:      "bxor #7, @er4",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x59, 0x60},
+				Opcode:         opcode.Jmp,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.AR32_S2,
+			expectedRegDst:      []byte{0x06},
+			expectedString:      "jmp @er6",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x5D, 0x60},
+				Opcode:         opcode.Jsr,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.AR32_S2,
+			expectedRegDst:      []byte{0x06},
+			expectedString:      "jsr @er6",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x40, 0x69, 0x20},
+				Opcode:         opcode.Ldc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.R8_LDC, // This one is very strange... Check TODO
+			expectedRegSrc:      []byte{0x02},
+			expectedString:      "ldc.w @er2, ccr",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x41, 0x69, 0x20},
+				Opcode:         opcode.Ldc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.R8_LDC, // This one is very strange... Check TODO
+			expectedRegSrc:      []byte{0x02},
+			expectedString:      "ldc.w @er2, exr",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x68, 0x79},
+				Opcode:         opcode.Mov,
+				BWL:            size.Byte,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.AR32_R8,
+			expectedRegSrc:      []byte{0x07},
+			expectedRegDst:      []byte{0x09},
+			expectedString:      "mov.b @sp, r1l",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x69, 0x24},
+				Opcode:         opcode.Mov,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.AR32_R16,
+			expectedRegSrc:      []byte{0x02},
+			expectedRegDst:      []byte{0x04},
+			expectedString:      "mov.w @er2, r4",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x00, 0x69, 0x23},
+				Opcode:         opcode.Mov,
+				BWL:            size.Longword,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.AR32_R32,
+			expectedRegSrc:      []byte{0x02},
+			expectedRegDst:      []byte{0x03},
+			expectedString:      "mov.l @er2, er3",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x68, 0xA0},
+				Opcode:         opcode.Mov,
+				BWL:            size.Byte,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.R8_AR32,
+			expectedRegSrc:      []byte{0x00},
+			expectedRegDst:      []byte{0x0A},
+			expectedString:      "mov.b r0h, @er2",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x69, 0xD8},
+				Opcode:         opcode.Mov,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.R16_AR32,
+			expectedRegSrc:      []byte{0x08},
+			expectedRegDst:      []byte{0x0D},
+			expectedString:      "mov.w e0, @er5",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x00, 0x69, 0x95},
+				Opcode:         opcode.Mov,
+				BWL:            size.Longword,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.R32_AR32,
+			expectedRegSrc:      []byte{0x05},
+			expectedRegDst:      []byte{0x09},
+			expectedString:      "mov.l er5, @er1",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x40, 0x69, 0xF0},
+				Opcode:         opcode.Stc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.R8_STC,
+			expectedRegDst:      []byte{0x0F},
+			expectedString:      "stc.w ccr, @sp",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x41, 0x69, 0xD0},
+				Opcode:         opcode.Stc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.R8_STC, // This one is very strange... Check TODO
+			expectedRegDst:      []byte{0x0D},
+			expectedString:      "stc.w exr, @er5",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0xE0, 0x7B, 0x4C},
+				Opcode:         opcode.Tas,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.S4_R32,
+			expectedString:      "tas @er4",
 		},
 	}
 	for _, tc := range testCases {
