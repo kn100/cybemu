@@ -226,8 +226,7 @@ func (i *Inst) DetermineOperandTypeAndSetData() {
 	case addressingmode.RegisterIndirect:
 		switch i.BWL {
 		case size.Byte:
-			switch i.Opcode {
-			case opcode.Mov:
+			if i.Opcode == opcode.Mov {
 				if i.Bytes[1]>>4 > 0x7 {
 					i.OperandType = operand.R8_AR32
 					i.RegSrc = []byte{i.Bytes[1] & 0x0F}
@@ -258,8 +257,7 @@ func (i *Inst) DetermineOperandTypeAndSetData() {
 				i.RegDst = []byte{i.Bytes[3] >> 4}
 			}
 		case size.Longword:
-			switch i.Opcode {
-			case opcode.Mov:
+			if i.Opcode == opcode.Mov {
 				if i.Bytes[3]>>4 > 0x7 {
 					i.OperandType = operand.R32_AR32
 					i.RegSrc = []byte{i.Bytes[3] & 0x0F}
