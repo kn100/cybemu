@@ -1515,7 +1515,18 @@ func TestDetermineOperandTypeAndSetDataRegisterIndirect(t *testing.T) {
 			expectedRegDst:      []byte{0x04},
 			expectedString:      "bclr #6, @er4",
 		},
-		// Skipping BCLR `7D 30 62 40` as I don't know what operand type it is.
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7D, 0x30, 0x62, 0x40},
+				Opcode:         opcode.Bclr,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.R8_AR32_BCLR,
+			expectedRegSrc:      []byte{0x04},
+			expectedRegDst:      []byte{0x03},
+			expectedString:      "bclr r4h, @er3",
+		},
 		{
 			instruction: instruction.Inst{
 				Bytes:          []byte{0x7C, 0x40, 0x76, 0xF0},
@@ -1593,7 +1604,18 @@ func TestDetermineOperandTypeAndSetDataRegisterIndirect(t *testing.T) {
 			expectedRegDst:      []byte{0x04},
 			expectedString:      "bnot #7, @er4",
 		},
-		// Skipping BNOT Rn, @Erd, 7D 30 61 50 as I don't know what operand type it is.
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7D, 0x30, 0x61, 0x50},
+				Opcode:         opcode.Bnot,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.R8_AR32,
+			expectedRegSrc:      []byte{0x05},
+			expectedRegDst:      []byte{0x03},
+			expectedString:      "bnot r5h, @er3",
+		},
 		{
 			instruction: instruction.Inst{
 				Bytes:          []byte{0x7C, 0x40, 0x74, 0x70},
@@ -1616,7 +1638,18 @@ func TestDetermineOperandTypeAndSetDataRegisterIndirect(t *testing.T) {
 			expectedRegDst:      []byte{0x04},
 			expectedString:      "bset #7, @er4",
 		},
-		// Skipping BSET 7D 30 60 50
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7D, 0x30, 0x60, 0x50},
+				Opcode:         opcode.Bset,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.R8_AR32,
+			expectedRegSrc:      []byte{0x05},
+			expectedRegDst:      []byte{0x03},
+			expectedString:      "bset r5h, @er3",
+		},
 		{
 			instruction: instruction.Inst{
 				Bytes:          []byte{0x7D, 0x40, 0x67, 0x70},
@@ -1639,7 +1672,18 @@ func TestDetermineOperandTypeAndSetDataRegisterIndirect(t *testing.T) {
 			expectedRegDst:      []byte{0x04},
 			expectedString:      "btst #7, @er4",
 		},
-		// Skipping BTST 7C 30 63 50
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7C, 0x30, 0x63, 0x50},
+				Opcode:         opcode.Btst,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.RegisterIndirect,
+			},
+			expectedOperandType: operand.R8_AR32,
+			expectedRegSrc:      []byte{0x05},
+			expectedRegDst:      []byte{0x03},
+			expectedString:      "btst r5h, @er3",
+		},
 		{
 			instruction: instruction.Inst{
 				Bytes:          []byte{0x7C, 0x40, 0x73, 0x70},

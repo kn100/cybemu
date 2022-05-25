@@ -272,11 +272,11 @@ func (i *Inst) DetermineOperandTypeAndSetData() {
 			}
 		case size.Unset:
 			switch i.Opcode {
-			case opcode.Band, opcode.Bclr, opcode.Biand,
+			case opcode.Band, opcode.Biand,
 				opcode.Bild, opcode.Bior, opcode.Bist,
-				opcode.Bixor, opcode.Bld, opcode.Bnot,
-				opcode.Bor, opcode.Bset, opcode.Bst,
-				opcode.Btst, opcode.Bxor:
+				opcode.Bixor, opcode.Bld,
+				opcode.Bor, opcode.Bst,
+				opcode.Bxor:
 				i.OperandType = operand.Ix_AR32
 				i.RegDst = []byte{i.Bytes[1] >> 4}
 				imm := i.Bytes[3] >> 4
@@ -284,6 +284,29 @@ func (i *Inst) DetermineOperandTypeAndSetData() {
 					i.Imm = []byte{imm - 8}
 				} else {
 					i.Imm = []byte{imm}
+				}
+			case opcode.Bclr:
+				switch i.Bytes[2] >> 4 {
+				case 0x6:
+					i.OperandType = operand.R8_AR32_BCLR
+					i.RegSrc = []byte{i.Bytes[3] >> 4}
+					i.RegDst = []byte{i.Bytes[1] >> 4}
+				case 0x7:
+					i.OperandType = operand.Ix_AR32
+					i.RegDst = []byte{i.Bytes[1] >> 4}
+					i.Imm = []byte{i.Bytes[3] >> 4}
+
+				}
+			case opcode.Bnot, opcode.Bset, opcode.Btst:
+				switch i.Bytes[2] >> 4 {
+				case 0x6:
+					i.OperandType = operand.R8_AR32
+					i.RegSrc = []byte{i.Bytes[3] >> 4}
+					i.RegDst = []byte{i.Bytes[1] >> 4}
+				case 0x7:
+					i.OperandType = operand.Ix_AR32
+					i.RegDst = []byte{i.Bytes[1] >> 4}
+					i.Imm = []byte{i.Bytes[3] >> 4}
 				}
 			case opcode.Jmp, opcode.Jsr:
 				i.OperandType = operand.AR32_S2
@@ -297,7 +320,6 @@ func (i *Inst) DetermineOperandTypeAndSetData() {
 		if i.BWL == size.Unset && i.Opcode == opcode.Nop {
 			i.OperandType = operand.None
 		}
-
 		// case addressingmode.RegisterIndirect:
 		// 	panic("RegisterIndirect not implemented")
 		// case addressingmode.AbsoluteAddress:
@@ -384,9 +406,16 @@ func (i *Inst) String() string {
 	case operand.AR32_R8, operand.AR32_R16, operand.AR32_R32:
 		build = fmt.Sprintf("@%s, %s", toRegister(i.RegSrc[0], size.Longword), toRegister(i.RegDst[0], i.BWL))
 	case operand.R8_AR32, operand.R16_AR32, operand.R32_AR32:
-		build = fmt.Sprintf("%s, @%s", toRegister(i.RegSrc[0], i.BWL), toShiftedRegister(i.RegDst[0], size.Longword))
+		// This conditionality feels wrong. TODO: Doublecheck.
+		if i.BWL == size.Unset && (i.Opcode == opcode.Bnot || i.Opcode == opcode.Bset || i.Opcode == opcode.Btst) {
+			build = fmt.Sprintf("%s, @%s", toRegister(i.RegSrc[0], size.Byte), toRegister(i.RegDst[0], size.Longword))
+		} else {
+			build = fmt.Sprintf("%s, @%s", toRegister(i.RegSrc[0], i.BWL), toShiftedRegister(i.RegDst[0], size.Longword))
+		}
 	case operand.S4_R32:
 		build = fmt.Sprintf("@%s", toRegister(i.Reg[0], size.Longword))
+	case operand.R8_AR32_BCLR:
+		build = fmt.Sprintf("%s, @%s", toRegister(i.RegSrc[0], size.Byte), toRegister(i.RegDst[0], size.Longword))
 	case operand.None:
 		build = ""
 	}
