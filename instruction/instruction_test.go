@@ -1853,3 +1853,375 @@ func TestDetermineOperandTypeAndSetDataRegisterIndirect(t *testing.T) {
 
 	}
 }
+
+func TestDetermineOperandTypeAndSetDataRegisterImmediate(t *testing.T) {
+	testCases := []struct {
+		instruction         instruction.Inst
+		expectedOperandType operand.OperandType
+		expectedRegSrc      []byte
+		expectedRegDst      []byte
+		expectedImm         []byte
+		expectedString      string
+	}{
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x8D, 0x81},
+				Opcode:         opcode.Add,
+				BWL:            size.Byte,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I8_R8,
+			expectedRegDst:      []byte{0x0D},
+			expectedImm:         []byte{0x81},
+			expectedString:      "add.b #0x81, r5l",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x79, 0x11, 0x30, 0x39},
+				Opcode:         opcode.Add,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I16_R16,
+			expectedRegDst:      []byte{0x01},
+			expectedImm:         []byte{0x30, 0x39},
+			expectedString:      "add.w #0x3039, r1",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7A, 0x15, 0x12, 0x34, 0x56, 0x78},
+				Opcode:         opcode.Add,
+				BWL:            size.Longword,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I32_R32,
+			expectedRegDst:      []byte{0x05},
+			expectedImm:         []byte{0x12, 0x34, 0x56, 0x78},
+			expectedString:      "add.l #0x12345678, er5",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x9F, 0x01},
+				Opcode:         opcode.Addx,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I8_R8,
+			expectedRegDst:      []byte{0x0F},
+			expectedImm:         []byte{0x01},
+			expectedString:      "addx #0x01, r7l",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0xE0, 0x7B},
+				Opcode:         opcode.And,
+				BWL:            size.Byte,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I8_R8,
+			expectedRegDst:      []byte{0x00},
+			expectedImm:         []byte{0x7B},
+			expectedString:      "and.b #0x7B, r0h",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x79, 0x6C, 0x26, 0x94},
+				Opcode:         opcode.And,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I16_R16,
+			expectedRegDst:      []byte{0x0C},
+			expectedImm:         []byte{0x26, 0x94},
+			expectedString:      "and.w #0x2694, e4",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7A, 0x63, 0x00, 0x0A, 0xBC, 0xDE},
+				Opcode:         opcode.And,
+				BWL:            size.Longword,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I32_R32,
+			expectedRegDst:      []byte{0x03},
+			expectedImm:         []byte{0x00, 0x0A, 0xBC, 0xDE},
+			expectedString:      "and.l #0x000ABCDE, er3",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x06, 0xC0},
+				Opcode:         opcode.Andc,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.S2_IMM,
+			expectedImm:         []byte{0xC0},
+			expectedString:      "andc #0xC0, ccr",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x41, 0x06, 0xA5},
+				Opcode:         opcode.Andc,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I8_EXR,
+			expectedImm:         []byte{0xA5},
+			expectedString:      "andc #0xA5, exr",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0xA0, 0x00},
+				Opcode:         opcode.Cmp,
+				BWL:            size.Byte,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I8_R8,
+			expectedRegDst:      []byte{0x00},
+			expectedImm:         []byte{0x00},
+			expectedString:      "cmp.b #0x00, r0h",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x79, 0x2D, 0x1F, 0xFF},
+				Opcode:         opcode.Cmp,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I16_R16,
+			expectedRegDst:      []byte{0x0D},
+			expectedImm:         []byte{0x1F, 0xFF},
+			expectedString:      "cmp.w #0x1FFF, e5",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7A, 0x24, 0x00, 0x00, 0xFF, 0xFF},
+				Opcode:         opcode.Cmp,
+				BWL:            size.Longword,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I32_R32,
+			expectedRegDst:      []byte{0x04},
+			expectedImm:         []byte{0x00, 0x00, 0xFF, 0xFF},
+			expectedString:      "cmp.l #0x0000FFFF, er4",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x07, 0xC1},
+				Opcode:         opcode.Ldc,
+				BWL:            size.Byte,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.S2_IMM,
+			expectedImm:         []byte{0xC1},
+			expectedString:      "ldc.b #0xC1, ccr",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x41, 0x07, 0x6A},
+				Opcode:         opcode.Ldc,
+				BWL:            size.Byte,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I8_EXR,
+			expectedImm:         []byte{0x6A},
+			expectedString:      "ldc.b #0x6A, exr",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0xF0, 0x1F},
+				Opcode:         opcode.Mov,
+				BWL:            size.Byte,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I8_R8,
+			expectedRegDst:      []byte{0x00},
+			expectedImm:         []byte{0x1F},
+			expectedString:      "mov.b #0x1F, r0h",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x79, 0x0B, 0x27, 0x0F},
+				Opcode:         opcode.Mov,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I16_R16,
+			expectedRegDst:      []byte{0x0B},
+			expectedImm:         []byte{0x27, 0x0F},
+			expectedString:      "mov.w #0x270F, e3",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7A, 0x00, 0x00, 0x00, 0x11, 0xD7},
+				Opcode:         opcode.Mov,
+				BWL:            size.Longword,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I32_R32,
+			expectedRegDst:      []byte{0x00},
+			expectedImm:         []byte{0x00, 0x00, 0x11, 0xD7},
+			expectedString:      "mov.l #0x000011D7, er0",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0xC1, 0x04},
+				Opcode:         opcode.Or,
+				BWL:            size.Byte,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I8_R8,
+			expectedRegDst:      []byte{0x01},
+			expectedImm:         []byte{0x04},
+			expectedString:      "or.b #0x04, r1h",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x79, 0x40, 0x00, 0xC0},
+				Opcode:         opcode.Or,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I16_R16,
+			expectedRegDst:      []byte{0x00},
+			expectedImm:         []byte{0x00, 0xC0},
+			expectedString:      "or.w #0x00C0, r0",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7A, 0x40, 0x00, 0x00, 0x00, 0xFE},
+				Opcode:         opcode.Or,
+				BWL:            size.Longword,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I32_R32,
+			expectedRegDst:      []byte{0x00},
+			expectedImm:         []byte{0x00, 0x00, 0x00, 0xFE},
+			expectedString:      "or.l #0x000000FE, er0",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x04, 0x01},
+				Opcode:         opcode.Orc,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.S2_IMM,
+			expectedImm:         []byte{0x01},
+			expectedString:      "orc #0x01, ccr",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x41, 0x04, 0x7B},
+				Opcode:         opcode.Orc,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I8_EXR,
+			expectedImm:         []byte{0x7B},
+			expectedString:      "orc #0x7B, exr",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x79, 0x3B, 0xFF, 0xF8},
+				Opcode:         opcode.Sub,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I16_R16,
+			expectedRegDst:      []byte{0x0B},
+			expectedImm:         []byte{0xFF, 0xF8},
+			expectedString:      "sub.w #0xFFF8, e3",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7A, 0x37, 0xFF, 0xFF, 0xFF, 0xF0},
+				Opcode:         opcode.Sub,
+				BWL:            size.Longword,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I32_R32,
+			expectedRegDst:      []byte{0x07},
+			expectedImm:         []byte{0xFF, 0xFF, 0xFF, 0xF0},
+			expectedString:      "sub.l #0xFFFFFFF0, sp",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0xB5, 0x08},
+				Opcode:         opcode.Subx,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I8_R8,
+			expectedRegDst:      []byte{0x05},
+			expectedImm:         []byte{0x08},
+			expectedString:      "subx #0x08, r5h",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0xD4, 0x80},
+				Opcode:         opcode.Xor,
+				BWL:            size.Byte,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I8_R8,
+			expectedRegDst:      []byte{0x04},
+			expectedImm:         []byte{0x80},
+			expectedString:      "xor.b #0x80, r4h",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x79, 0x5D, 0x20, 0x00},
+				Opcode:         opcode.Xor,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I16_R16,
+			expectedRegDst:      []byte{0x0D},
+			expectedImm:         []byte{0x20, 0x00},
+			expectedString:      "xor.w #0x2000, e5",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7A, 0x56, 0x00, 0x00, 0xFF, 0xFF},
+				Opcode:         opcode.Xor,
+				BWL:            size.Longword,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I32_R32,
+			expectedRegDst:      []byte{0x06},
+			expectedImm:         []byte{0x00, 0x00, 0xFF, 0xFF},
+			expectedString:      "xor.l #0x0000FFFF, er6",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x05, 0x40},
+				Opcode:         opcode.Xorc,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.S2_IMM,
+			expectedImm:         []byte{0x40},
+			expectedString:      "xorc #0x40, ccr",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x41, 0x05, 0x9E},
+				Opcode:         opcode.Xorc,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.Immediate,
+			},
+			expectedOperandType: operand.I8_EXR,
+			expectedImm:         []byte{0x9E},
+			expectedString:      "xorc #0x9E, exr",
+		},
+	}
+	for _, tc := range testCases {
+		tc.instruction.DetermineOperandTypeAndSetData()
+		assert.Equal(t, tc.expectedOperandType, tc.instruction.OperandType, "expected operand type to be %s, got %s", tc.expectedOperandType, tc.instruction.OperandType)
+		assert.Equal(t, tc.expectedImm, tc.instruction.Imm, "expected Imm %v, got %v", tc.expectedImm, tc.instruction.Imm)
+		assert.Equal(t, tc.expectedRegDst, tc.instruction.RegDst, "expected RegDst %v, got %v", tc.expectedRegDst, tc.instruction.RegDst)
+		assert.Equal(t, tc.expectedString, tc.instruction.String())
+
+	}
+}

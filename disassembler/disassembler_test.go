@@ -40,6 +40,9 @@ func TestDisassemble(t *testing.T) {
 					TotalBytes:     2,
 					BWL:            size.Byte,
 					AddressingMode: addressingmode.Immediate,
+					OperandType:    operand.I8_R8,
+					RegDst:         []byte{0x0D},
+					Imm:            []byte{0x81},
 					Pos:            0,
 				},
 				{
@@ -47,7 +50,10 @@ func TestDisassemble(t *testing.T) {
 					Bytes:          []byte{0x79, 0x6C, 0x26, 0x94},
 					TotalBytes:     4,
 					BWL:            size.Word,
+					OperandType:    operand.I16_R16,
 					AddressingMode: addressingmode.Immediate,
+					RegDst:         []byte{0x0C},
+					Imm:            []byte{0x26, 0x94},
 					Pos:            2,
 				},
 				{
