@@ -40,8 +40,53 @@ type Inst struct {
 // determine its Operand Type, and set various fields in the instruction.
 func (i *Inst) DetermineOperandTypeAndSetData() {
 	switch i.AddressingMode {
-	// case addressingmode.Immediate:
-	// 	panic("Immediate not implemented")
+	case addressingmode.Immediate:
+		switch i.BWL {
+		case size.Byte:
+			switch i.Opcode {
+			case opcode.Add, opcode.And, opcode.Cmp, opcode.Mov, opcode.Or, opcode.Xor:
+				i.OperandType = operand.I8_R8
+				i.Imm = []byte{i.Bytes[1]}
+				i.RegDst = []byte{i.Bytes[0] & 0x0F}
+			case opcode.Ldc:
+				if len(i.Bytes) == 4 {
+					i.OperandType = operand.I8_EXR
+					i.Imm = []byte{i.Bytes[3]}
+				} else {
+					i.OperandType = operand.S2_IMM
+					i.Imm = []byte{i.Bytes[1]}
+				}
+			}
+		case size.Word:
+			switch i.Opcode {
+			case opcode.Add, opcode.And, opcode.Cmp, opcode.Mov, opcode.Or, opcode.Sub, opcode.Xor:
+				i.OperandType = operand.I16_R16
+				i.Imm = []byte{i.Bytes[2], i.Bytes[3]}
+				i.RegDst = []byte{i.Bytes[1] & 0x0F}
+			}
+		case size.Longword:
+			switch i.Opcode {
+			case opcode.Add, opcode.And, opcode.Cmp, opcode.Mov, opcode.Or, opcode.Sub, opcode.Xor:
+				i.OperandType = operand.I32_R32
+				i.Imm = []byte{i.Bytes[2], i.Bytes[3], i.Bytes[4], i.Bytes[5]}
+				i.RegDst = []byte{i.Bytes[1] & 0x0F}
+			}
+		case size.Unset:
+			switch i.Opcode {
+			case opcode.Addx, opcode.Subx:
+				i.OperandType = operand.I8_R8
+				i.Imm = []byte{i.Bytes[1]}
+				i.RegDst = []byte{i.Bytes[0] & 0x0F}
+			case opcode.Andc, opcode.Orc, opcode.Xorc:
+				if len(i.Bytes) == 4 {
+					i.OperandType = operand.I8_EXR
+					i.Imm = []byte{i.Bytes[3]}
+				} else {
+					i.OperandType = operand.S2_IMM
+					i.Imm = []byte{i.Bytes[1]}
+				}
+			}
+		}
 	case addressingmode.RegisterDirect:
 		switch i.BWL {
 		case size.Byte:
@@ -414,6 +459,16 @@ func (i *Inst) String() string {
 		build = fmt.Sprintf("@%s", toRegister(i.Reg[0], size.Longword))
 	case operand.R8_AR32_BCLR:
 		build = fmt.Sprintf("%s, @%s", toRegister(i.RegSrc[0], size.Byte), toRegister(i.RegDst[0], size.Longword))
+	case operand.I8_R8:
+		build = fmt.Sprintf("%s, %s", toImm(i.Imm[0]), toRegister(i.RegDst[0], size.Byte))
+	case operand.I16_R16:
+		build = fmt.Sprintf("%s, %s", toImmWord(i.Imm), toRegister(i.RegDst[0], size.Word))
+	case operand.I32_R32:
+		build = fmt.Sprintf("%s, %s", toImmLongWord(i.Imm), toRegister(i.RegDst[0], size.Longword))
+	case operand.S2_IMM:
+		build = fmt.Sprintf("%s, ccr", toImm(i.Imm[0]))
+	case operand.I8_EXR:
+		build = fmt.Sprintf("%s, exr", toImm(i.Imm[0]))
 	case operand.None:
 		build = ""
 	}
@@ -473,4 +528,16 @@ func toShiftedRegister(b byte, s size.Size) string {
 		}
 	}
 	return register
+}
+
+func toImm(b byte) string {
+	return fmt.Sprintf("#0x%02X", b)
+}
+
+func toImmWord(b []byte) string {
+	return fmt.Sprintf("#0x%02X%02X", b[0], b[1])
+}
+
+func toImmLongWord(b []byte) string {
+	return fmt.Sprintf("#0x%02X%02X%02X%02X", b[0], b[1], b[2], b[3])
 }
