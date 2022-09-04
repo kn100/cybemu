@@ -91,4 +91,7 @@ const (
 	CCR_AI32
 	CCR_AR32
 	TRAPA_Ix
+	// TODO: Uhhhh
+	AI32_R8
+	R8_AI32
 )

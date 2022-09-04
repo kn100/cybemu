@@ -1,6 +1,7 @@
 package instruction_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/kn100/cybemu/addressingmode"
@@ -2223,5 +2224,982 @@ func TestDetermineOperandTypeAndSetDataRegisterImmediate(t *testing.T) {
 		assert.Equal(t, tc.expectedRegDst, tc.instruction.RegDst, "expected RegDst %v, got %v", tc.expectedRegDst, tc.instruction.RegDst)
 		assert.Equal(t, tc.expectedString, tc.instruction.String())
 
+	}
+}
+
+func TestDetermineOperandTypeAndSetDataRegisterAbsoluteAddress(t *testing.T) {
+	testCases := []struct {
+		instruction         instruction.Inst
+		expectedOperandType operand.OperandType
+		expectedRegSrc      []byte
+		expectedRegDst      []byte
+		expectedImm         []byte
+		expectedImmL        []byte
+		expectedImmR        []byte
+		expectedString      string
+	}{
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7E, 0xC0, 0x76, 0x50},
+				Opcode:         opcode.Band,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI8,
+			expectedImmL:        []byte{0xC0},
+			expectedImmR:        []byte{0x05},
+			expectedString:      "band #5, @0xC0:8",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x10, 0x01, 0x23, 0x76, 0x30},
+				Opcode:         opcode.Band,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI16,
+			expectedImmL:        []byte{0x01, 0x23},
+			expectedImmR:        []byte{0x03},
+			expectedString:      "band #3, @0x0123:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x30, 0x12, 0x34, 0x56, 0x78, 0x76, 0x50},
+				Opcode:         opcode.Band,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI32,
+			expectedImmL:        []byte{0x12, 0x34, 0x56, 0x78},
+			expectedImmR:        []byte{0x05},
+			expectedString:      "band #5, @0x12345678:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7F, 0xC0, 0x72, 0x10},
+				Opcode:         opcode.Bclr,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI8,
+			expectedImmL:        []byte{0xC0},
+			expectedImmR:        []byte{0x01},
+			expectedString:      "bclr #1, @0xC0:8",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x18, 0x01, 0x23, 0x72, 0x30},
+				Opcode:         opcode.Bclr,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI16,
+			expectedImmL:        []byte{0x01, 0x23},
+			expectedImmR:        []byte{0x03},
+			expectedString:      "bclr #3, @0x0123:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x38, 0x12, 0x34, 0x56, 0x78, 0x72, 0x50},
+				Opcode:         opcode.Bclr,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI32,
+			expectedImmL:        []byte{0x12, 0x34, 0x56, 0x78},
+			expectedImmR:        []byte{0x05},
+			expectedString:      "bclr #5, @0x12345678:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7F, 0xC0, 0x62, 0x50},
+				Opcode:         opcode.Bclr,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R8_AI8_BCLR,
+			expectedRegDst:      []byte{0x05},
+			expectedImm:         []byte{0xC0},
+			expectedString:      "bclr r5h, @0xC0:8",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x18, 0x01, 0x23, 0x62, 0x70},
+				Opcode:         opcode.Bclr,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R8_AI16_S6,
+			expectedRegDst:      []byte{0x07},
+			expectedImm:         []byte{0x01, 0x23},
+			expectedString:      "bclr r7h, @0x0123:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x38, 0x12, 0x34, 0x56, 0x78, 0x62, 0xE0},
+				Opcode:         opcode.Bclr,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R8_AI32_BCLR,
+			expectedRegDst:      []byte{0x0E},
+			expectedImm:         []byte{0x12, 0x34, 0x56, 0x78},
+			expectedString:      "bclr r6l, @0x12345678:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7E, 0xC0, 0x76, 0x80},
+				Opcode:         opcode.Biand,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI8,
+			expectedImmL:        []byte{0xC0},
+			expectedImmR:        []byte{0x08},
+			expectedString:      "biand #0, @0xC0:8",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x10, 0x01, 0x23, 0x76, 0xB0},
+				Opcode:         opcode.Biand,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI16,
+			expectedImmL:        []byte{0x01, 0x23},
+			expectedImmR:        []byte{0x0B},
+			expectedString:      "biand #3, @0x0123:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x30, 0x12, 0x34, 0x67, 0x89, 0x76, 0xD0},
+				Opcode:         opcode.Biand,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI32,
+			expectedImmL:        []byte{0x12, 0x34, 0x67, 0x89},
+			expectedImmR:        []byte{0x0D},
+			expectedString:      "biand #5, @0x12346789:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7E, 0xC0, 0x77, 0x80},
+				Opcode:         opcode.Bild,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI8,
+			expectedImmL:        []byte{0xC0},
+			expectedImmR:        []byte{0x08},
+			expectedString:      "bild #0, @0xC0:8",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x10, 0x01, 0x23, 0x77, 0xB0},
+				Opcode:         opcode.Bild,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI16,
+			expectedImmL:        []byte{0x01, 0x23},
+			expectedImmR:        []byte{0x0B},
+			expectedString:      "bild #3, @0x0123:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x30, 0x12, 0x34, 0x56, 0x78, 0x77, 0xD0},
+				Opcode:         opcode.Bild,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI32,
+			expectedImmL:        []byte{0x12, 0x34, 0x56, 0x78},
+			expectedImmR:        []byte{0x0D},
+			expectedString:      "bild #5, @0x12345678:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7E, 0xC0, 0x74, 0x80},
+				Opcode:         opcode.Bior,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI8,
+			expectedImmL:        []byte{0xC0},
+			expectedImmR:        []byte{0x08},
+			expectedString:      "bior #0, @0xC0:8",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x10, 0x00, 0x00, 0x74, 0xF0},
+				Opcode:         opcode.Bior,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI16,
+			expectedImmL:        []byte{0x00, 0x00},
+			expectedImmR:        []byte{0x0F},
+			expectedString:      "bior #7, @0x0000:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x30, 0x00, 0x00, 0x00, 0x00, 0x74, 0xF0},
+				Opcode:         opcode.Bior,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI32,
+			expectedImmL:        []byte{0x00, 0x00, 0x00, 0x00},
+			expectedImmR:        []byte{0x0F},
+			expectedString:      "bior #7, @0x00000000:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7F, 0xC0, 0x67, 0x80},
+				Opcode:         opcode.Bist,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI8,
+			expectedImmL:        []byte{0xC0},
+			expectedImmR:        []byte{0x08},
+			expectedString:      "bist #0, @0xC0:8",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x18, 0x00, 0x00, 0x67, 0xF0},
+				Opcode:         opcode.Bist,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI16,
+			expectedImmL:        []byte{0x00, 0x00},
+			expectedImmR:        []byte{0x0F},
+			expectedString:      "bist #7, @0x0000:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x38, 0x00, 0x00, 0x00, 0x00, 0x67, 0xF0},
+				Opcode:         opcode.Bist,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI32,
+			expectedImmL:        []byte{0x00, 0x00, 0x00, 0x00},
+			expectedImmR:        []byte{0x0F},
+			expectedString:      "bist #7, @0x00000000:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7E, 0xC0, 0x75, 0x80},
+				Opcode:         opcode.Bixor,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI8,
+			expectedImmL:        []byte{0xC0},
+			expectedImmR:        []byte{0x08},
+			expectedString:      "bixor #0, @0xC0:8",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x30, 0x00, 0x00, 0x75, 0xF0},
+				Opcode:         opcode.Bixor,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI16,
+			expectedImmL:        []byte{0x00, 0x00},
+			expectedImmR:        []byte{0x0F},
+			expectedString:      "bixor #7, @0x0000:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x38, 0x00, 0x00, 0x00, 0x00, 0x75, 0xF0},
+				Opcode:         opcode.Bixor,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI32,
+			expectedImmL:        []byte{0x00, 0x00, 0x00, 0x00},
+			expectedImmR:        []byte{0x0F},
+			expectedString:      "bixor #7, @0x00000000:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7E, 0xC0, 0x77, 0x80},
+				Opcode:         opcode.Bld,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI8,
+			expectedImmL:        []byte{0xC0},
+			expectedImmR:        []byte{0x08},
+			expectedString:      "bld #0, @0xC0:8",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x30, 0x00, 0x00, 0x77, 0xF0},
+				Opcode:         opcode.Bld,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI16,
+			expectedImmL:        []byte{0x00, 0x00},
+			expectedImmR:        []byte{0x0F},
+			expectedString:      "bld #7, @0x0000:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x38, 0x00, 0x00, 0x00, 0x00, 0x77, 0xF0},
+				Opcode:         opcode.Bld,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI32,
+			expectedImmL:        []byte{0x00, 0x00, 0x00, 0x00},
+			expectedImmR:        []byte{0x0F},
+			expectedString:      "bld #7, @0x00000000:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7F, 0xC0, 0x71, 0x10},
+				Opcode:         opcode.Bnot,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI8,
+			expectedImmL:        []byte{0xC0},
+			expectedImmR:        []byte{0x01},
+			expectedString:      "bnot #1, @0xC0:8",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x18, 0x01, 0x23, 0x71, 0x30},
+				Opcode:         opcode.Bnot,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI16,
+			expectedImmL:        []byte{0x01, 0x23},
+			expectedImmR:        []byte{0x03},
+			expectedString:      "bnot #3, @0x0123:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x38, 0x12, 0x34, 0x56, 0x78, 0x71, 0x50},
+				Opcode:         opcode.Bnot,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI32,
+			expectedImmL:        []byte{0x12, 0x34, 0x56, 0x78},
+			expectedImmR:        []byte{0x05},
+			expectedString:      "bnot #5, @0x12345678:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7F, 0xC0, 0x61, 0x50},
+				Opcode:         opcode.Bnot,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R8_AI8_BCLR,
+			expectedRegDst:      []byte{0x05},
+			expectedImm:         []byte{0xC0},
+			expectedString:      "bnot r5h, @0xC0:8",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x18, 0x01, 0x23, 0x61, 0x70},
+				Opcode:         opcode.Bnot,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R8_AI16_S6,
+			expectedRegDst:      []byte{0x07},
+			expectedImm:         []byte{0x01, 0x23},
+			expectedString:      "bnot r7h, @0x0123:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x38, 0x12, 0x34, 0x56, 0x78, 0x61, 0xE0},
+				Opcode:         opcode.Bnot,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			// TODO: Terrible operand type name.
+			expectedOperandType: operand.R8_AI32_BCLR,
+			expectedRegDst:      []byte{0x0E},
+			expectedImm:         []byte{0x12, 0x34, 0x56, 0x78},
+			expectedString:      "bnot r6l, @0x12345678:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7E, 0xC0, 0x74, 0x80},
+				Opcode:         opcode.Bor,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI8,
+			expectedImmL:        []byte{0xC0},
+			expectedImmR:        []byte{0x08},
+			expectedString:      "bor #0, @0xC0:8",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x10, 0x00, 0x00, 0x74, 0xF0},
+				Opcode:         opcode.Bor,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI16,
+			expectedImmL:        []byte{0x00, 0x00},
+			expectedImmR:        []byte{0x0F},
+			expectedString:      "bor #7, @0x0000:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x30, 0x00, 0x00, 0x00, 0x00, 0x74, 0xF0},
+				Opcode:         opcode.Bor,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI32,
+			expectedImmL:        []byte{0x00, 0x00, 0x00, 0x00},
+			expectedImmR:        []byte{0x0F},
+			expectedString:      "bor #7, @0x00000000:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7F, 0xC0, 0x70, 0x10},
+				Opcode:         opcode.Bset,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI8,
+			expectedImmL:        []byte{0xC0},
+			expectedImmR:        []byte{0x01},
+			expectedString:      "bset #1, @0xC0:8",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x18, 0x01, 0x23, 0x70, 0x30},
+				Opcode:         opcode.Bset,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI16,
+			expectedImmL:        []byte{0x01, 0x23},
+			expectedImmR:        []byte{0x03},
+			expectedString:      "bset #3, @0x0123:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x38, 0x12, 0x34, 0x56, 0x78, 0x70, 0x50},
+				Opcode:         opcode.Bset,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI32,
+			expectedImmL:        []byte{0x12, 0x34, 0x56, 0x78},
+			expectedImmR:        []byte{0x05},
+			expectedString:      "bset #5, @0x12345678:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7F, 0xC0, 0x60, 0x50},
+				Opcode:         opcode.Bset,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R8_AI8_BCLR,
+			expectedRegDst:      []byte{0x05},
+			expectedImm:         []byte{0xC0},
+			expectedString:      "bset r5h, @0xC0:8",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x18, 0x01, 0x23, 0x60, 0x70},
+				Opcode:         opcode.Bset,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R8_AI16_S6,
+			expectedRegDst:      []byte{0x07},
+			expectedImm:         []byte{0x01, 0x23},
+			expectedString:      "bset r7h, @0x0123:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x38, 0x12, 0x34, 0x56, 0x78, 0x60, 0xE0},
+				Opcode:         opcode.Bset,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			// TODO: Terrible operand type name.
+			expectedOperandType: operand.R8_AI32_BCLR,
+			expectedRegDst:      []byte{0x0E},
+			expectedImm:         []byte{0x12, 0x34, 0x56, 0x78},
+			expectedString:      "bset r6l, @0x12345678:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7F, 0xC0, 0x67, 0x80},
+				Opcode:         opcode.Bst,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI8,
+			expectedImmL:        []byte{0xC0},
+			expectedImmR:        []byte{0x08},
+			expectedString:      "bst #0, @0xC0:8",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x18, 0x00, 0x00, 0x67, 0xF0},
+				Opcode:         opcode.Bst,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI16,
+			expectedImmL:        []byte{0x00, 0x00},
+			expectedImmR:        []byte{0x0F},
+			expectedString:      "bst #7, @0x0000:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x38, 0x00, 0x00, 0x00, 0x00, 0x67, 0xF0},
+				Opcode:         opcode.Bst,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI32,
+			expectedImmL:        []byte{0x00, 0x00, 0x00, 0x00},
+			expectedImmR:        []byte{0x0F},
+			expectedString:      "bst #7, @0x00000000:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7E, 0xC0, 0x73, 0x10},
+				Opcode:         opcode.Btst,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI8,
+			expectedImmL:        []byte{0xC0},
+			expectedImmR:        []byte{0x01},
+			expectedString:      "btst #1, @0xC0:8",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x10, 0x01, 0x23, 0x73, 0x30},
+				Opcode:         opcode.Btst,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI16,
+			expectedImmL:        []byte{0x01, 0x23},
+			expectedImmR:        []byte{0x03},
+			expectedString:      "btst #3, @0x0123:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x30, 0x12, 0x34, 0x56, 0x78, 0x73, 0x50},
+				Opcode:         opcode.Btst,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI32,
+			expectedImmL:        []byte{0x12, 0x34, 0x56, 0x78},
+			expectedImmR:        []byte{0x05},
+			expectedString:      "btst #5, @0x12345678:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7E, 0xC0, 0x63, 0x50},
+				Opcode:         opcode.Btst,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R8_AI8_BCLR,
+			expectedRegDst:      []byte{0x05},
+			expectedImm:         []byte{0xC0},
+			expectedString:      "btst r5h, @0xC0:8",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x10, 0x01, 0x23, 0x63, 0x70},
+				Opcode:         opcode.Btst,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R8_AI16_S6,
+			expectedRegDst:      []byte{0x07},
+			expectedImm:         []byte{0x01, 0x23},
+			expectedString:      "btst r7h, @0x0123:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x30, 0x12, 0x34, 0x56, 0x78, 0x63, 0xE0},
+				Opcode:         opcode.Btst,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			// TODO: Terrible operand type name.
+			expectedOperandType: operand.R8_AI32_BCLR,
+			expectedRegDst:      []byte{0x0E},
+			expectedImm:         []byte{0x12, 0x34, 0x56, 0x78},
+			expectedString:      "btst r6l, @0x12345678:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x7E, 0xC0, 0x75, 0x80},
+				Opcode:         opcode.Bxor,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI8,
+			expectedImmL:        []byte{0xC0},
+			expectedImmR:        []byte{0x08},
+			expectedString:      "bxor #0, @0xC0:8",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x10, 0x00, 0x00, 0x75, 0xF0},
+				Opcode:         opcode.Bxor,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI16,
+			expectedImmL:        []byte{0x00, 0x00},
+			expectedImmR:        []byte{0x0F},
+			expectedString:      "bxor #7, @0x0000:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x30, 0x00, 0x00, 0x00, 0x00, 0x75, 0xF0},
+				Opcode:         opcode.Bxor,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.Ix_AI32,
+			expectedImmL:        []byte{0x00, 0x00, 0x00, 0x00},
+			expectedImmR:        []byte{0x0F},
+			expectedString:      "bxor #7, @0x00000000:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x5A, 0x12, 0x89, 0xDE},
+				Opcode:         opcode.Jmp,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.I24,
+			expectedImm:         []byte{0x12, 0x89, 0xDE},
+			expectedString:      "jmp @0x1289DE:24",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x5E, 0x12, 0x89, 0xDE},
+				Opcode:         opcode.Jsr,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.I24,
+			expectedImm:         []byte{0x12, 0x89, 0xDE},
+			expectedString:      "jsr @0x1289DE:24",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x40, 0x6B, 0x00, 0x01, 0x26},
+				Opcode:         opcode.Ldc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.AI16_CCR,
+			expectedImm:         []byte{0x01, 0x26},
+			expectedString:      "ldc.w @0x0126:16, ccr",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x40, 0x6B, 0x20, 0x00, 0x12, 0x89, 0xDE},
+				Opcode:         opcode.Ldc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.AI32_CCR,
+			expectedImm:         []byte{0x00, 0x12, 0x89, 0xDE},
+			expectedString:      "ldc.w @0x001289DE:32, ccr",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x41, 0x6B, 0x00, 0x01, 0x26},
+				Opcode:         opcode.Ldc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.AI16_CCR,
+			expectedImm:         []byte{0x01, 0x26},
+			expectedString:      "ldc.w @0x0126:16, exr",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x41, 0x6B, 0x20, 0x00, 0x12, 0x89, 0xDE},
+				Opcode:         opcode.Ldc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.AI32_CCR,
+			expectedImm:         []byte{0x00, 0x12, 0x89, 0xDE},
+			expectedString:      "ldc.w @0x001289DE:32, exr",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x20, 0xFF},
+				Opcode:         opcode.Mov,
+				BWL:            size.Byte,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.AI8_R8,
+			expectedImm:         []byte{0xFF},
+			expectedRegDst:      []byte{0x00},
+			expectedString:      "mov.b @0xFF:8, r0h",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x0C, 0x01, 0x26},
+				Opcode:         opcode.Mov,
+				BWL:            size.Byte,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.AI16_R8,
+			expectedImm:         []byte{0x01, 0x26},
+			expectedRegDst:      []byte{0x0C},
+			expectedString:      "mov.b @0x0126:16, r4l",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x2A, 0x00, 0x12, 0x89, 0xDE},
+				Opcode:         opcode.Mov,
+				BWL:            size.Byte,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.AI32_R8,
+			expectedImm:         []byte{0x00, 0x12, 0x89, 0xDE},
+			expectedRegDst:      []byte{0x0A},
+			expectedString:      "mov.b @0x001289DE:32, r2l",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6B, 0x0E, 0x01, 0x26},
+				Opcode:         opcode.Mov,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.AI16_R16,
+			expectedImm:         []byte{0x01, 0x26},
+			expectedRegDst:      []byte{0x0E},
+			expectedString:      "mov.w @0x0126:16, e6",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6B, 0x25, 0x00, 0x12, 0x89, 0xDE},
+				Opcode:         opcode.Mov,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.AI32_R16,
+			expectedImm:         []byte{0x00, 0x12, 0x89, 0xDE},
+			expectedRegDst:      []byte{0x05},
+			expectedString:      "mov.w @0x001289DE:32, r5",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x00, 0x6B, 0x03, 0x01, 0x26},
+				Opcode:         opcode.Mov,
+				BWL:            size.Longword,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.AI16_R32,
+			expectedImm:         []byte{0x01, 0x26},
+			expectedRegDst:      []byte{0x03},
+			expectedString:      "mov.l @0x0126:16, er3",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x00, 0x6B, 0x22, 0x00, 0x12, 0x89, 0xDE},
+				Opcode:         opcode.Mov,
+				BWL:            size.Longword,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.AI32_R32,
+			expectedImm:         []byte{0x00, 0x12, 0x89, 0xDE},
+			expectedRegDst:      []byte{0x02},
+			expectedString:      "mov.l @0x001289DE:32, er2",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x31, 0xC0},
+				Opcode:         opcode.Mov,
+				BWL:            size.Byte,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R8_AI8,
+			expectedImm:         []byte{0xC0},
+			expectedRegSrc:      []byte{0x03},
+			expectedString:      "mov.b r1h, @0xC0:8",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x89, 0x01, 0x26},
+				Opcode:         opcode.Mov,
+				BWL:            size.Byte,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R8_AI16,
+			expectedImm:         []byte{0x01, 0x26},
+			expectedRegSrc:      []byte{0x09},
+			expectedString:      "mov.b r1l, @0x0126:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0xA2, 0x00, 0x12, 0x89, 0xDE},
+				Opcode:         opcode.Mov,
+				BWL:            size.Byte,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R8_AI32,
+			expectedImm:         []byte{0x00, 0x12, 0x89, 0xDE},
+			expectedRegSrc:      []byte{0x02},
+			expectedString:      "mov.b r2h, @0x001289DE:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6B, 0x88, 0x01, 0x26},
+				Opcode:         opcode.Mov,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R16_AI16,
+			expectedImm:         []byte{0x01, 0x26},
+			expectedRegSrc:      []byte{0x08},
+			expectedString:      "mov.w e0, @0x0126:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6B, 0xAC, 0x00, 0x12, 0x89, 0xDE},
+				Opcode:         opcode.Mov,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R16_AI32,
+			expectedImm:         []byte{0x00, 0x12, 0x89, 0xDE},
+			expectedRegSrc:      []byte{0x0C},
+			expectedString:      "mov.w e4, @0x001289DE:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x00, 0x6B, 0x81, 0x01, 0x26},
+				Opcode:         opcode.Mov,
+				BWL:            size.Longword,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R32_AI16,
+			expectedImm:         []byte{0x01, 0x26},
+			expectedRegSrc:      []byte{0x01},
+			expectedString:      "mov.l er1, @0x0126:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x00, 0x6B, 0xA2, 0x00, 0x12, 0x89, 0xDE},
+				Opcode:         opcode.Mov,
+				BWL:            size.Longword,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R32_AI32,
+			expectedImm:         []byte{0x00, 0x12, 0x89, 0xDE},
+			expectedRegSrc:      []byte{0x02},
+			expectedString:      "mov.l er2, @0x001289DE:32",
+		},
+		//
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x4D, 0xFF, 0xC0},
+				Opcode:         opcode.Movfpe,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.AI16_R8,
+			expectedImm:         []byte{0xFF, 0xC0},
+			expectedRegSrc:      []byte{0x0D},
+			expectedString:      "movfpe @0xFFC0:16, r5l",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0xC5, 0xFF, 0xC0},
+				Opcode:         opcode.Movtpe,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R8_AI16,
+			expectedImm:         []byte{0xFF, 0xC0},
+			expectedRegSrc:      []byte{0x05},
+			expectedString:      "movtpe r5h, @0xFFC0:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x40, 0x6B, 0x80, 0x01, 0x26},
+				Opcode:         opcode.Stc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.CCR_AI16,
+			expectedImm:         []byte{0x01, 0x26},
+			expectedString:      "stc.w ccr, @0x0126:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x40, 0x6B, 0xA0, 0x00, 0x12, 0x89, 0xDE},
+				Opcode:         opcode.Stc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.CCR_AI32,
+			expectedImm:         []byte{0x00, 0x12, 0x89, 0xDE},
+			expectedString:      "stc.w ccr, @0x001289DE:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x41, 0x6B, 0x80, 0x01, 0x26},
+				Opcode:         opcode.Stc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.CCR_AI16,
+			expectedImm:         []byte{0x01, 0x26},
+			expectedString:      "stc.w exr, @0x0126:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x41, 0x6B, 0xA0, 0x00, 0x12, 0x89, 0xDE},
+				Opcode:         opcode.Stc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.CCR_AI32,
+			expectedImm:         []byte{0x00, 0x12, 0x89, 0xDE},
+			expectedString:      "stc.w exr, @0x001289DE:32",
+		},
+	}
+	for _, tc := range testCases {
+		tc.instruction.DetermineOperandTypeAndSetData()
+		fmt.Printf("%+v", tc.instruction)
+		assert.Equal(t, tc.expectedOperandType, tc.instruction.OperandType, "expected operand type to be %s, got %s", tc.expectedOperandType, tc.instruction.OperandType)
+		assert.Equal(t, tc.expectedImmL, tc.instruction.ImmL, "expected ImmL %v, got %v", tc.expectedImmL, tc.instruction.ImmL)
+		assert.Equal(t, tc.expectedImmR, tc.instruction.ImmR, "expected ImmR %v, got %v", tc.expectedImmR, tc.instruction.ImmR)
+		assert.Equal(t, tc.expectedImm, tc.instruction.Imm, "expected Imm %v, got %v", tc.expectedImm, tc.instruction.Imm)
+		assert.Equal(t, tc.expectedString, tc.instruction.String())
 	}
 }
