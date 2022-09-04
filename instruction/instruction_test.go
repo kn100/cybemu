@@ -3217,7 +3217,7 @@ func TestDetermineOperandAndTypeAndSetDataRegisterProgramCounterRelative(t *test
 				Opcode:         opcode.Bra,
 				BWL:            size.Unset,
 				AddressingMode: addressingmode.ProgramCounterRelative,
-				Pos:            60, //0x3C
+				Pos:            60, // 0x3C
 			},
 			expectedOperandType: operand.O8,
 			expectedString:      "bra 0x0000003C:8",
@@ -3229,7 +3229,7 @@ func TestDetermineOperandAndTypeAndSetDataRegisterProgramCounterRelative(t *test
 				Opcode:         opcode.Brn,
 				BWL:            size.Unset,
 				AddressingMode: addressingmode.ProgramCounterRelative,
-				Pos:            62, //0x3E
+				Pos:            62, // 0x3E
 			},
 			expectedOperandType: operand.O8,
 			expectedString:      "brn 0x0000003C:8",
@@ -3241,7 +3241,7 @@ func TestDetermineOperandAndTypeAndSetDataRegisterProgramCounterRelative(t *test
 				Opcode:         opcode.Bhi,
 				BWL:            size.Unset,
 				AddressingMode: addressingmode.ProgramCounterRelative,
-				Pos:            64, //0x40
+				Pos:            64, // 0x40
 			},
 			expectedOperandType: operand.O8,
 			expectedString:      "bhi 0x0000003C:8",
@@ -3253,7 +3253,7 @@ func TestDetermineOperandAndTypeAndSetDataRegisterProgramCounterRelative(t *test
 				Opcode:         opcode.Bra,
 				BWL:            size.Unset,
 				AddressingMode: addressingmode.ProgramCounterRelative,
-				Pos:            92, //0x5C
+				Pos:            92, // 0x5C
 			},
 			expectedOperandType: operand.O16,
 			expectedString:      "bra 0x0000009C:16",
@@ -3265,7 +3265,7 @@ func TestDetermineOperandAndTypeAndSetDataRegisterProgramCounterRelative(t *test
 				Opcode:         opcode.Brn,
 				BWL:            size.Unset,
 				AddressingMode: addressingmode.ProgramCounterRelative,
-				Pos:            96, //0x60
+				Pos:            96, // 0x60
 			},
 			expectedOperandType: operand.O16,
 			expectedString:      "brn 0x0000009C:16",
@@ -3277,7 +3277,7 @@ func TestDetermineOperandAndTypeAndSetDataRegisterProgramCounterRelative(t *test
 				Opcode:         opcode.Bhi,
 				BWL:            size.Unset,
 				AddressingMode: addressingmode.ProgramCounterRelative,
-				Pos:            100, //0x64
+				Pos:            100, // 0x64
 			},
 			expectedOperandType: operand.O16,
 			expectedString:      "bhi 0x0000009C:16",
