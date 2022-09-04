@@ -364,8 +364,8 @@ func (i *Inst) DetermineOperandTypeAndSetData() {
 	case addressingmode.AbsoluteAddress:
 		switch i.BWL {
 		case size.Byte:
-			switch i.Opcode {
-			case opcode.Mov:
+			// overcautious?
+			if i.Opcode == opcode.Mov {
 				switch len(i.Bytes) {
 				case 2:
 					if i.Bytes[0]>>4 == 0x02 {
@@ -442,8 +442,7 @@ func (i *Inst) DetermineOperandTypeAndSetData() {
 				}
 			}
 		case size.Longword:
-			switch i.Opcode {
-			case opcode.Mov:
+			if i.Opcode == opcode.Mov {
 				switch len(i.Bytes) {
 				case 6:
 					if i.Bytes[3]>>4 == 0x0 {
