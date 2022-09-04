@@ -2236,8 +2236,6 @@ func TestDetermineOperandTypeAndSetDataRegisterAbsoluteAddress(t *testing.T) {
 		expectedImm         []byte
 		expectedImmL        []byte
 		expectedImmR        []byte
-		expectedImm16       []byte
-		expectedImm32       []byte
 		expectedString      string
 	}{
 		{
@@ -2899,7 +2897,7 @@ func TestDetermineOperandTypeAndSetDataRegisterAbsoluteAddress(t *testing.T) {
 				AddressingMode: addressingmode.AbsoluteAddress,
 			},
 			expectedOperandType: operand.I24,
-			expectedImm32:       []byte{0x12, 0x89, 0xDE},
+			expectedImm:         []byte{0x12, 0x89, 0xDE},
 			expectedString:      "jmp @0x1289DE:24",
 		},
 		{
@@ -2910,7 +2908,7 @@ func TestDetermineOperandTypeAndSetDataRegisterAbsoluteAddress(t *testing.T) {
 				AddressingMode: addressingmode.AbsoluteAddress,
 			},
 			expectedOperandType: operand.I24,
-			expectedImm32:       []byte{0x12, 0x89, 0xDE},
+			expectedImm:         []byte{0x12, 0x89, 0xDE},
 			expectedString:      "jsr @0x1289DE:24",
 		},
 		{
@@ -2921,7 +2919,7 @@ func TestDetermineOperandTypeAndSetDataRegisterAbsoluteAddress(t *testing.T) {
 				AddressingMode: addressingmode.AbsoluteAddress,
 			},
 			expectedOperandType: operand.AI16_CCR,
-			expectedImm16:       []byte{0x01, 0x26},
+			expectedImm:         []byte{0x01, 0x26},
 			expectedString:      "ldc.w @0x0126:16, ccr",
 		},
 		{
@@ -2932,7 +2930,7 @@ func TestDetermineOperandTypeAndSetDataRegisterAbsoluteAddress(t *testing.T) {
 				AddressingMode: addressingmode.AbsoluteAddress,
 			},
 			expectedOperandType: operand.AI32_CCR,
-			expectedImm32:       []byte{0x00, 0x12, 0x89, 0xDE},
+			expectedImm:         []byte{0x00, 0x12, 0x89, 0xDE},
 			expectedString:      "ldc.w @0x001289DE:32, ccr",
 		},
 		{
@@ -2943,7 +2941,7 @@ func TestDetermineOperandTypeAndSetDataRegisterAbsoluteAddress(t *testing.T) {
 				AddressingMode: addressingmode.AbsoluteAddress,
 			},
 			expectedOperandType: operand.AI16_CCR,
-			expectedImm16:       []byte{0x01, 0x26},
+			expectedImm:         []byte{0x01, 0x26},
 			expectedString:      "ldc.w @0x0126:16, exr",
 		},
 		{
@@ -2954,7 +2952,7 @@ func TestDetermineOperandTypeAndSetDataRegisterAbsoluteAddress(t *testing.T) {
 				AddressingMode: addressingmode.AbsoluteAddress,
 			},
 			expectedOperandType: operand.AI32_CCR,
-			expectedImm32:       []byte{0x00, 0x12, 0x89, 0xDE},
+			expectedImm:         []byte{0x00, 0x12, 0x89, 0xDE},
 			expectedString:      "ldc.w @0x001289DE:32, exr",
 		},
 		{
@@ -3041,7 +3039,159 @@ func TestDetermineOperandTypeAndSetDataRegisterAbsoluteAddress(t *testing.T) {
 			expectedRegDst:      []byte{0x02},
 			expectedString:      "mov.l @0x001289DE:32, er2",
 		},
-		// next up is Mov.b
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x31, 0xC0},
+				Opcode:         opcode.Mov,
+				BWL:            size.Byte,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R8_AI8,
+			expectedImm:         []byte{0xC0},
+			expectedRegSrc:      []byte{0x03},
+			expectedString:      "mov.b r1h, @0xC0:8",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x89, 0x01, 0x26},
+				Opcode:         opcode.Mov,
+				BWL:            size.Byte,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R8_AI16,
+			expectedImm:         []byte{0x01, 0x26},
+			expectedRegSrc:      []byte{0x09},
+			expectedString:      "mov.b r1l, @0x0126:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0xA2, 0x00, 0x12, 0x89, 0xDE},
+				Opcode:         opcode.Mov,
+				BWL:            size.Byte,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R8_AI32,
+			expectedImm:         []byte{0x00, 0x12, 0x89, 0xDE},
+			expectedRegSrc:      []byte{0x02},
+			expectedString:      "mov.b r2h, @0x001289DE:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6B, 0x88, 0x01, 0x26},
+				Opcode:         opcode.Mov,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R16_AI16,
+			expectedImm:         []byte{0x01, 0x26},
+			expectedRegSrc:      []byte{0x08},
+			expectedString:      "mov.w e0, @0x0126:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6B, 0xAC, 0x00, 0x12, 0x89, 0xDE},
+				Opcode:         opcode.Mov,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R16_AI32,
+			expectedImm:         []byte{0x00, 0x12, 0x89, 0xDE},
+			expectedRegSrc:      []byte{0x0C},
+			expectedString:      "mov.w e4, @0x001289DE:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x00, 0x6B, 0x81, 0x01, 0x26},
+				Opcode:         opcode.Mov,
+				BWL:            size.Longword,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R32_AI16,
+			expectedImm:         []byte{0x01, 0x26},
+			expectedRegSrc:      []byte{0x01},
+			expectedString:      "mov.l er1, @0x0126:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x00, 0x6B, 0xA2, 0x00, 0x12, 0x89, 0xDE},
+				Opcode:         opcode.Mov,
+				BWL:            size.Longword,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R32_AI32,
+			expectedImm:         []byte{0x00, 0x12, 0x89, 0xDE},
+			expectedRegSrc:      []byte{0x02},
+			expectedString:      "mov.l er2, @0x001289DE:32",
+		},
+		//
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0x4D, 0xFF, 0xC0},
+				Opcode:         opcode.Movfpe,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.AI16_R8,
+			expectedImm:         []byte{0xFF, 0xC0},
+			expectedRegSrc:      []byte{0x0D},
+			expectedString:      "movfpe @0xFFC0:16, r5l",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6A, 0xC5, 0xFF, 0xC0},
+				Opcode:         opcode.Movtpe,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.R8_AI16,
+			expectedImm:         []byte{0xFF, 0xC0},
+			expectedRegSrc:      []byte{0x05},
+			expectedString:      "movtpe r5h, @0xFFC0:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x40, 0x6B, 0x80, 0x01, 0x26},
+				Opcode:         opcode.Stc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.CCR_AI16,
+			expectedImm:         []byte{0x01, 0x26},
+			expectedString:      "stc.w ccr, @0x0126:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x40, 0x6B, 0xA0, 0x00, 0x12, 0x89, 0xDE},
+				Opcode:         opcode.Stc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.CCR_AI32,
+			expectedImm:         []byte{0x00, 0x12, 0x89, 0xDE},
+			expectedString:      "stc.w ccr, @0x001289DE:32",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x41, 0x6B, 0x80, 0x01, 0x26},
+				Opcode:         opcode.Stc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.CCR_AI16,
+			expectedImm:         []byte{0x01, 0x26},
+			expectedString:      "stc.w exr, @0x0126:16",
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x41, 0x6B, 0xA0, 0x00, 0x12, 0x89, 0xDE},
+				Opcode:         opcode.Stc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.AbsoluteAddress,
+			},
+			expectedOperandType: operand.CCR_AI32,
+			expectedImm:         []byte{0x00, 0x12, 0x89, 0xDE},
+			expectedString:      "stc.w exr, @0x001289DE:32",
+		},
 	}
 	for _, tc := range testCases {
 		tc.instruction.DetermineOperandTypeAndSetData()
@@ -3050,7 +3200,6 @@ func TestDetermineOperandTypeAndSetDataRegisterAbsoluteAddress(t *testing.T) {
 		assert.Equal(t, tc.expectedImmL, tc.instruction.ImmL, "expected ImmL %v, got %v", tc.expectedImmL, tc.instruction.ImmL)
 		assert.Equal(t, tc.expectedImmR, tc.instruction.ImmR, "expected ImmR %v, got %v", tc.expectedImmR, tc.instruction.ImmR)
 		assert.Equal(t, tc.expectedImm, tc.instruction.Imm, "expected Imm %v, got %v", tc.expectedImm, tc.instruction.Imm)
-		assert.Equal(t, tc.expectedImm32, tc.instruction.Imm32, "expected Imm32 %v, got %v", tc.expectedImm32, tc.instruction.Imm32)
 		assert.Equal(t, tc.expectedString, tc.instruction.String())
 	}
 }

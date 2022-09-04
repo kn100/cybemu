@@ -27,9 +27,7 @@ type Inst struct {
 	OperandType    operand.OperandType
 	RegDst         []byte
 	RegSrc         []byte
-	Imm16          []byte
 	Imm            []byte
-	Imm32          []byte
 	Reg            []byte
 	RegCnt         []byte
 	ImmR           []byte
@@ -368,18 +366,37 @@ func (i *Inst) DetermineOperandTypeAndSetData() {
 		case size.Byte:
 			switch i.Opcode {
 			case opcode.Mov:
-				if len(i.Bytes) == 2 {
-					i.OperandType = operand.AI8_R8
-					i.Imm = []byte{i.Bytes[1]}
-					i.RegDst = []byte{i.Bytes[0] & 0x0F}
-				} else if len(i.Bytes) == 4 {
-					i.OperandType = operand.AI16_R8
-					i.Imm = []byte{i.Bytes[2], i.Bytes[3]}
-					i.RegDst = []byte{i.Bytes[1] & 0x0F}
-				} else if len(i.Bytes) == 6 {
-					i.OperandType = operand.AI32_R8
-					i.Imm = []byte{i.Bytes[2], i.Bytes[3], i.Bytes[4], i.Bytes[5]}
-					i.RegDst = []byte{i.Bytes[1] & 0x0F}
+				switch len(i.Bytes) {
+				case 2:
+					if i.Bytes[0]>>4 == 0x02 {
+						i.OperandType = operand.AI8_R8
+						i.Imm = []byte{i.Bytes[1]}
+						i.RegDst = []byte{i.Bytes[0] & 0x0F}
+					} else if i.Bytes[0]>>4 == 0x03 {
+						i.OperandType = operand.R8_AI8
+						i.Imm = []byte{i.Bytes[1]}
+						i.RegSrc = []byte{i.Bytes[0] & 0x0F}
+					}
+				case 4:
+					if i.Bytes[1]>>4 == 0x00 {
+						i.OperandType = operand.AI16_R8
+						i.Imm = []byte{i.Bytes[2], i.Bytes[3]}
+						i.RegDst = []byte{i.Bytes[1] & 0x0F}
+					} else if i.Bytes[1]>>4 == 0x08 {
+						i.OperandType = operand.R8_AI16
+						i.Imm = []byte{i.Bytes[2], i.Bytes[3]}
+						i.RegSrc = []byte{i.Bytes[1] & 0x0F}
+					}
+				case 6:
+					if i.Bytes[1]>>4 == 0x02 {
+						i.OperandType = operand.AI32_R8
+						i.Imm = []byte{i.Bytes[2], i.Bytes[3], i.Bytes[4], i.Bytes[5]}
+						i.RegDst = []byte{i.Bytes[1] & 0x0F}
+					} else if i.Bytes[1]>>4 == 0x0A {
+						i.OperandType = operand.R8_AI32
+						i.Imm = []byte{i.Bytes[2], i.Bytes[3], i.Bytes[4], i.Bytes[5]}
+						i.RegSrc = []byte{i.Bytes[1] & 0x0F}
+					}
 				}
 			}
 		case size.Word:
@@ -387,31 +404,69 @@ func (i *Inst) DetermineOperandTypeAndSetData() {
 			case opcode.Ldc:
 				if len(i.Bytes) == 6 {
 					i.OperandType = operand.AI16_CCR
-					i.Imm16 = []byte{i.Bytes[4], i.Bytes[5]}
+					i.Imm = []byte{i.Bytes[4], i.Bytes[5]}
 				} else {
 					i.OperandType = operand.AI32_CCR
-					i.Imm32 = []byte{i.Bytes[4], i.Bytes[5], i.Bytes[6], i.Bytes[7]}
+					i.Imm = []byte{i.Bytes[4], i.Bytes[5], i.Bytes[6], i.Bytes[7]}
+				}
+			case opcode.Stc:
+				if len(i.Bytes) == 6 {
+					i.OperandType = operand.CCR_AI16
+					i.Imm = []byte{i.Bytes[4], i.Bytes[5]}
+				} else {
+					i.OperandType = operand.CCR_AI32
+					i.Imm = []byte{i.Bytes[4], i.Bytes[5], i.Bytes[6], i.Bytes[7]}
 				}
 			case opcode.Mov:
-				if len(i.Bytes) == 4 {
-					i.OperandType = operand.AI16_R16
-					i.Imm = []byte{i.Bytes[2], i.Bytes[3]}
-					i.RegDst = []byte{i.Bytes[1] & 0x0F}
-				} else if len(i.Bytes) == 6 {
-					i.OperandType = operand.AI32_R16
-					i.Imm = []byte{i.Bytes[2], i.Bytes[3], i.Bytes[4], i.Bytes[5]}
-					i.RegDst = []byte{i.Bytes[1] & 0x0F}
+				switch len(i.Bytes) {
+				case 4:
+					if i.Bytes[1]>>4 == 0x00 {
+						i.OperandType = operand.AI16_R16
+						i.Imm = []byte{i.Bytes[2], i.Bytes[3]}
+						i.RegDst = []byte{i.Bytes[1] & 0x0F}
+					} else if i.Bytes[1]>>4 == 0x08 {
+						i.OperandType = operand.R16_AI16
+						i.Imm = []byte{i.Bytes[2], i.Bytes[3]}
+						i.RegSrc = []byte{i.Bytes[1] & 0x0F}
+					}
+				case 6:
+					if i.Bytes[1]>>4 == 0x02 {
+						i.OperandType = operand.AI32_R16
+						i.Imm = []byte{i.Bytes[2], i.Bytes[3], i.Bytes[4], i.Bytes[5]}
+						i.RegDst = []byte{i.Bytes[1] & 0x0F}
+					} else if i.Bytes[1]>>4 == 0x0A {
+						i.OperandType = operand.R16_AI32
+						i.Imm = []byte{i.Bytes[2], i.Bytes[3], i.Bytes[4], i.Bytes[5]}
+						i.RegSrc = []byte{i.Bytes[1] & 0x0F}
+					}
 				}
 			}
 		case size.Longword:
-			if len(i.Bytes) == 6 {
-				i.OperandType = operand.AI16_R32
-				i.Imm = []byte{i.Bytes[4], i.Bytes[5]}
-				i.RegDst = []byte{i.Bytes[3] & 0x0F}
-			} else if len(i.Bytes) == 8 {
-				i.OperandType = operand.AI32_R32
-				i.Imm = []byte{i.Bytes[4], i.Bytes[5], i.Bytes[6], i.Bytes[7]}
-				i.RegDst = []byte{i.Bytes[3] & 0x0F}
+			switch i.Opcode {
+			case opcode.Mov:
+				switch len(i.Bytes) {
+				case 6:
+					if i.Bytes[3]>>4 == 0x0 {
+						i.OperandType = operand.AI16_R32
+						i.Imm = []byte{i.Bytes[4], i.Bytes[5]}
+						i.RegDst = []byte{i.Bytes[3] & 0x0F}
+					} else if i.Bytes[3]>>4 == 0x8 {
+						i.OperandType = operand.R32_AI16
+						i.Imm = []byte{i.Bytes[4], i.Bytes[5]}
+						i.RegSrc = []byte{i.Bytes[3] & 0x0F}
+					}
+				case 8:
+					if i.Bytes[3]>>4 == 0x2 {
+						i.OperandType = operand.AI32_R32
+						i.Imm = []byte{i.Bytes[4], i.Bytes[5], i.Bytes[6], i.Bytes[7]}
+						i.RegDst = []byte{i.Bytes[3] & 0x0F}
+					} else if i.Bytes[3]>>4 == 0xA {
+						i.OperandType = operand.R32_AI32
+						i.Imm = []byte{i.Bytes[4], i.Bytes[5], i.Bytes[6], i.Bytes[7]}
+						i.RegSrc = []byte{i.Bytes[3] & 0x0F}
+
+					}
+				}
 			}
 		case size.Unset:
 			switch i.Opcode {
@@ -454,7 +509,15 @@ func (i *Inst) DetermineOperandTypeAndSetData() {
 				}
 			case opcode.Jmp, opcode.Jsr:
 				i.OperandType = operand.I24
-				i.Imm32 = []byte{i.Bytes[1], i.Bytes[2], i.Bytes[3]}
+				i.Imm = []byte{i.Bytes[1], i.Bytes[2], i.Bytes[3]}
+			case opcode.Movfpe:
+				i.OperandType = operand.AI16_R8
+				i.Imm = []byte{i.Bytes[2], i.Bytes[3]}
+				i.RegDst = []byte{i.Bytes[1] & 0x0F}
+			case opcode.Movtpe:
+				i.OperandType = operand.R8_AI16
+				i.Imm = []byte{i.Bytes[2], i.Bytes[3]}
+				i.RegSrc = []byte{i.Bytes[1] & 0x0F}
 			}
 		}
 
@@ -580,25 +643,38 @@ func (i *Inst) String() string {
 			d = d - 8
 		}
 		build = fmt.Sprintf("#%d, @%s:32", d, toImmLongWord(i.ImmL))
-	case operand.R8_AI8_BCLR, operand.R8_AI8:
+	case operand.R8_AI8_BCLR:
 		build = fmt.Sprintf("%s, @%s:8", toRegister(i.RegDst[0], size.Byte), toImm(i.Imm[0]))
 	case operand.R8_AI16_S6:
 		build = fmt.Sprintf("%s, @%s:16", toRegister(i.RegDst[0], size.Byte), toImmWord(i.Imm))
 	case operand.R8_AI32_BCLR:
 		build = fmt.Sprintf("%s, @%s:32", toRegister(i.RegDst[0], size.Byte), toImmLongWord(i.Imm))
 	case operand.I24:
-		build = fmt.Sprintf("@%s:24", toImmTwentyFour(i.Imm32))
+		build = fmt.Sprintf("@%s:24", toImmTwentyFour(i.Imm))
 	case operand.AI16_CCR:
 		if i.Bytes[1]&0x0F == 0 {
-			build = fmt.Sprintf("@%s:16, ccr", toImmWord(i.Imm16))
+			build = fmt.Sprintf("@%s:16, ccr", toImmWord(i.Imm))
 		} else {
-			build = fmt.Sprintf("@%s:16, exr", toImmWord(i.Imm16))
+			build = fmt.Sprintf("@%s:16, exr", toImmWord(i.Imm))
 		}
 	case operand.AI32_CCR:
 		if i.Bytes[1]&0x0F == 0 {
-			build = fmt.Sprintf("@%s:32, ccr", toImmLongWord(i.Imm32))
+			build = fmt.Sprintf("@%s:32, ccr", toImmLongWord(i.Imm))
 		} else {
-			build = fmt.Sprintf("@%s:32, exr", toImmLongWord(i.Imm32))
+			build = fmt.Sprintf("@%s:32, exr", toImmLongWord(i.Imm))
+		}
+		//
+	case operand.CCR_AI16:
+		if i.Bytes[1]&0x0F == 0 {
+			build = fmt.Sprintf("ccr, @%s:16", toImmWord(i.Imm))
+		} else {
+			build = fmt.Sprintf("exr, @%s:16", toImmWord(i.Imm))
+		}
+	case operand.CCR_AI32:
+		if i.Bytes[1]&0x0F == 0 {
+			build = fmt.Sprintf("ccr, @%s:32", toImmLongWord(i.Imm))
+		} else {
+			build = fmt.Sprintf("exr, @%s:32", toImmLongWord(i.Imm))
 		}
 	case operand.AI8_R8:
 		build = fmt.Sprintf("@%s:8, %s", toImm(i.Imm[0]), toRegister(i.RegDst[0], size.Byte))
@@ -614,6 +690,21 @@ func (i *Inst) String() string {
 		build = fmt.Sprintf("@%s:16, %s", toImmWord(i.Imm), toRegister(i.RegDst[0], size.Longword))
 	case operand.AI32_R32:
 		build = fmt.Sprintf("@%s:32, %s", toImmLongWord(i.Imm), toRegister(i.RegDst[0], size.Longword))
+	case operand.R8_AI8:
+		build = fmt.Sprintf("%s, @%s:8", toRegister(i.RegSrc[0], size.Byte), toImm(i.Imm[0]))
+	case operand.R8_AI16:
+		build = fmt.Sprintf("%s, @%s:16", toRegister(i.RegSrc[0], size.Byte), toImmWord(i.Imm))
+	case operand.R8_AI32:
+		build = fmt.Sprintf("%s, @%s:32", toRegister(i.RegSrc[0], size.Byte), toImmLongWord(i.Imm))
+	case operand.R16_AI16:
+		build = fmt.Sprintf("%s, @%s:16", toRegister(i.RegSrc[0], size.Word), toImmWord(i.Imm))
+	case operand.R16_AI32:
+		build = fmt.Sprintf("%s, @%s:32", toRegister(i.RegSrc[0], size.Word), toImmLongWord(i.Imm))
+	case operand.R32_AI16:
+		build = fmt.Sprintf("%s, @%s:16", toRegister(i.RegSrc[0], size.Longword), toImmWord(i.Imm))
+	case operand.R32_AI32:
+		build = fmt.Sprintf("%s, @%s:32", toRegister(i.RegSrc[0], size.Longword), toImmLongWord(i.Imm))
+
 	case operand.None:
 		build = ""
 	}
