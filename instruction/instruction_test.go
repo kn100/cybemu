@@ -1955,7 +1955,7 @@ func TestDetermineOperandTypeAndSetDataRegisterImmediate(t *testing.T) {
 				BWL:            size.Unset,
 				AddressingMode: addressingmode.Immediate,
 			},
-			expectedOperandType: operand.S2_IMM,
+			expectedOperandType: operand.I8_CCR,
 			expectedImm:         []byte{0xC0},
 			expectedString:      "andc #0xC0, ccr",
 		},
@@ -2013,7 +2013,7 @@ func TestDetermineOperandTypeAndSetDataRegisterImmediate(t *testing.T) {
 				BWL:            size.Byte,
 				AddressingMode: addressingmode.Immediate,
 			},
-			expectedOperandType: operand.S2_IMM,
+			expectedOperandType: operand.I8_CCR,
 			expectedImm:         []byte{0xC1},
 			expectedString:      "ldc.b #0xC1, ccr",
 		},
@@ -2107,7 +2107,7 @@ func TestDetermineOperandTypeAndSetDataRegisterImmediate(t *testing.T) {
 				BWL:            size.Unset,
 				AddressingMode: addressingmode.Immediate,
 			},
-			expectedOperandType: operand.S2_IMM,
+			expectedOperandType: operand.I8_CCR,
 			expectedImm:         []byte{0x01},
 			expectedString:      "orc #0x01, ccr",
 		},
@@ -2201,7 +2201,7 @@ func TestDetermineOperandTypeAndSetDataRegisterImmediate(t *testing.T) {
 				BWL:            size.Unset,
 				AddressingMode: addressingmode.Immediate,
 			},
-			expectedOperandType: operand.S2_IMM,
+			expectedOperandType: operand.I8_CCR,
 			expectedImm:         []byte{0x40},
 			expectedString:      "xorc #0x40, ccr",
 		},
@@ -3199,6 +3199,95 @@ func TestDetermineOperandTypeAndSetDataRegisterAbsoluteAddress(t *testing.T) {
 		assert.Equal(t, tc.expectedOperandType, tc.instruction.OperandType, "expected operand type to be %s, got %s", tc.expectedOperandType, tc.instruction.OperandType)
 		assert.Equal(t, tc.expectedImmL, tc.instruction.ImmL, "expected ImmL %v, got %v", tc.expectedImmL, tc.instruction.ImmL)
 		assert.Equal(t, tc.expectedImmR, tc.instruction.ImmR, "expected ImmR %v, got %v", tc.expectedImmR, tc.instruction.ImmR)
+		assert.Equal(t, tc.expectedImm, tc.instruction.Imm, "expected Imm %v, got %v", tc.expectedImm, tc.instruction.Imm)
+		assert.Equal(t, tc.expectedString, tc.instruction.String())
+	}
+}
+
+func TestDetermineOperandAndTypeAndSetDataRegisterProgramCounterRelative(t *testing.T) {
+	testCases := []struct {
+		instruction         instruction.Inst
+		expectedOperandType operand.OperandType
+		expectedImm         []byte
+		expectedString      string
+	}{
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x40, 0xFE},
+				Opcode:         opcode.Bra,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.ProgramCounterRelative,
+				Pos:            60, // 0x3C
+			},
+			expectedOperandType: operand.O8,
+			expectedString:      "bra 0x0000003C:8",
+			expectedImm:         []byte{0xFE},
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x41, 0xFC},
+				Opcode:         opcode.Brn,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.ProgramCounterRelative,
+				Pos:            62, // 0x3E
+			},
+			expectedOperandType: operand.O8,
+			expectedString:      "brn 0x0000003C:8",
+			expectedImm:         []byte{0xFC},
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x42, 0xFA},
+				Opcode:         opcode.Bhi,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.ProgramCounterRelative,
+				Pos:            64, // 0x40
+			},
+			expectedOperandType: operand.O8,
+			expectedString:      "bhi 0x0000003C:8",
+			expectedImm:         []byte{0xFA},
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x58, 0x00, 0x00, 0x3C},
+				Opcode:         opcode.Bra,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.ProgramCounterRelative,
+				Pos:            92, // 0x5C
+			},
+			expectedOperandType: operand.O16,
+			expectedString:      "bra 0x0000009C:16",
+			expectedImm:         []byte{0x00, 0x3C},
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x58, 0x10, 0x00, 0x38},
+				Opcode:         opcode.Brn,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.ProgramCounterRelative,
+				Pos:            96, // 0x60
+			},
+			expectedOperandType: operand.O16,
+			expectedString:      "brn 0x0000009C:16",
+			expectedImm:         []byte{0x00, 0x38},
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x58, 0x20, 0x00, 0x34},
+				Opcode:         opcode.Bhi,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.ProgramCounterRelative,
+				Pos:            100, // 0x64
+			},
+			expectedOperandType: operand.O16,
+			expectedString:      "bhi 0x0000009C:16",
+			expectedImm:         []byte{0x00, 0x34},
+		},
+	}
+	for _, tc := range testCases {
+		tc.instruction.DetermineOperandTypeAndSetData()
+		fmt.Printf("%+v", tc.instruction)
+		assert.Equal(t, tc.expectedOperandType, tc.instruction.OperandType, "expected operand type to be %s, got %s", tc.expectedOperandType, tc.instruction.OperandType)
 		assert.Equal(t, tc.expectedImm, tc.instruction.Imm, "expected Imm %v, got %v", tc.expectedImm, tc.instruction.Imm)
 		assert.Equal(t, tc.expectedString, tc.instruction.String())
 	}
