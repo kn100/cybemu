@@ -51,7 +51,7 @@ func (i *Inst) DetermineOperandTypeAndSetData() {
 					i.OperandType = operand.I8_EXR
 					i.Imm = []byte{i.Bytes[3]}
 				} else {
-					i.OperandType = operand.S2_IMM
+					i.OperandType = operand.I8_CCR
 					i.Imm = []byte{i.Bytes[1]}
 				}
 			}
@@ -80,7 +80,7 @@ func (i *Inst) DetermineOperandTypeAndSetData() {
 					i.OperandType = operand.I8_EXR
 					i.Imm = []byte{i.Bytes[3]}
 				} else {
-					i.OperandType = operand.S2_IMM
+					i.OperandType = operand.I8_CCR
 					i.Imm = []byte{i.Bytes[1]}
 				}
 			}
@@ -519,9 +519,16 @@ func (i *Inst) DetermineOperandTypeAndSetData() {
 				i.RegSrc = []byte{i.Bytes[1] & 0x0F}
 			}
 		}
+	case addressingmode.ProgramCounterRelative:
+		switch len(i.Bytes) {
+		case 2:
+			i.OperandType = operand.O8
+			i.Imm = []byte{i.Bytes[1]}
+		case 4:
+			i.OperandType = operand.O16
+			i.Imm = []byte{i.Bytes[2], i.Bytes[3]}
+		}
 
-		// case addressingmode.ProgramCounterRelative:
-		// 	panic("ProgramCounterrelative not implemented")
 		// case addressingmode.MemoryIndirect:
 		// 	panic("MemoryIndirect not implemented")
 		// case addressingmode.RegisterIndirectWithDisplacement:
@@ -618,7 +625,7 @@ func (i *Inst) String() string {
 		build = fmt.Sprintf("#%s, %s", toImmWord(i.Imm), toRegister(i.RegDst[0], size.Word))
 	case operand.I32_R32:
 		build = fmt.Sprintf("#%s, %s", toImmLongWord(i.Imm), toRegister(i.RegDst[0], size.Longword))
-	case operand.S2_IMM:
+	case operand.I8_CCR:
 		build = fmt.Sprintf("#%s, ccr", toImm(i.Imm[0]))
 	case operand.I8_EXR:
 		build = fmt.Sprintf("#%s, exr", toImm(i.Imm[0]))
@@ -703,7 +710,21 @@ func (i *Inst) String() string {
 		build = fmt.Sprintf("%s, @%s:16", toRegister(i.RegSrc[0], size.Longword), toImmWord(i.Imm))
 	case operand.R32_AI32:
 		build = fmt.Sprintf("%s, @%s:32", toRegister(i.RegSrc[0], size.Longword), toImmLongWord(i.Imm))
-
+	case operand.O8:
+		// Firstly, take offset, cast to int8,
+		offset := int8(i.Bytes[1])
+		// Then, take the position of this instruction and add it's length, and its offset
+		out := i.Pos + len(i.Bytes) + int(offset)
+		// Then convert to hex
+		build = fmt.Sprintf("0x%08X:8", out)
+	case operand.O16:
+		// TODO: Clearly won't work
+		// Firstly, take offset, cast to int16,
+		offset := int16(i.Bytes[2])<<8 + int16(i.Bytes[3])
+		// Then, take the position of this instruction and add it's length, and its offset
+		out := i.Pos + len(i.Bytes) + int(offset)
+		// Then convert to hex
+		build = fmt.Sprintf("0x%08X:16", out)
 	case operand.None:
 		build = ""
 	}

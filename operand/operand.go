@@ -38,9 +38,10 @@ const (
 	R16_AR32
 	AR32_R8
 	R8_AR32
+	S2_IMM
+	O8
 	O16
 	I24
-	S2_IMM
 	I8_EXR
 	Ix_R8_SH
 	Ix_R16_SH
@@ -94,4 +95,5 @@ const (
 	// TODO: Uhhhh
 	AI32_R8
 	R8_AI32
+	I8_CCR
 )
