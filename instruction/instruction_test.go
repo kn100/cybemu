@@ -3292,3 +3292,317 @@ func TestDetermineOperandAndTypeAndSetDataRegisterProgramCounterRelative(t *test
 		assert.Equal(t, tc.expectedString, tc.instruction.String())
 	}
 }
+
+func TestDetermineOperandAndTypeAndSetDataMemoryIndirect(t *testing.T) {
+	testCases := []struct {
+		instruction         instruction.Inst
+		expectedOperandType operand.OperandType
+		expectedImm         []byte
+		expectedString      string
+	}{
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x5B, 0x3C},
+				Opcode:         opcode.Jmp,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.MemoryIndirect,
+			},
+			expectedOperandType: operand.AI8,
+			expectedString:      "jmp @@0x3C:8",
+			expectedImm:         []byte{0x3C},
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x5F, 0x3C},
+				Opcode:         opcode.Jsr,
+				BWL:            size.Unset,
+				AddressingMode: addressingmode.MemoryIndirect,
+			},
+			expectedOperandType: operand.AI8,
+			expectedString:      "jsr @@0x3C:8",
+			expectedImm:         []byte{0x3C},
+		},
+	}
+	for _, tc := range testCases {
+		tc.instruction.DetermineOperandTypeAndSetData()
+		fmt.Printf("%+v", tc.instruction)
+		assert.Equal(t, tc.expectedOperandType, tc.instruction.OperandType, "expected operand type to be %s, got %s", tc.expectedOperandType, tc.instruction.OperandType)
+		assert.Equal(t, tc.expectedImm, tc.instruction.Imm, "expected Imm %v, got %v", tc.expectedImm, tc.instruction.Imm)
+		assert.Equal(t, tc.expectedString, tc.instruction.String())
+	}
+}
+
+func TestDetermineOperandAndTypeAndSetDataRegisterDirectWithDisplacement(t *testing.T) {
+	testCases := []struct {
+		instruction         instruction.Inst
+		expectedOperandType operand.OperandType
+		expectedImm         []byte
+		expectedRegSrc      []byte
+		expectedRegDst      []byte
+		expectedString      string
+	}{
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x40, 0x6F, 0x10, 0x1F, 0xFF},
+				Opcode:         opcode.Ldc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.RegisterIndirectWithDisplacement,
+			},
+			expectedOperandType: operand.AI16R32_CCR,
+			expectedRegSrc:      []byte{0x01},
+			expectedString:      "ldc.w @(0x1FFF:16,er1), ccr",
+			expectedImm:         []byte{0x1F, 0xFF},
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x40, 0x78, 0x20, 0x6B, 0x20, 0x00, 0x12, 0x34, 0x56},
+				Opcode:         opcode.Ldc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.RegisterIndirectWithDisplacement,
+			},
+			expectedOperandType: operand.AI32R32_CCR,
+			expectedRegSrc:      []byte{0x02},
+			expectedString:      "ldc.w @(0x00123456:32,er2), ccr",
+			expectedImm:         []byte{0x00, 0x12, 0x34, 0x56},
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x41, 0x6F, 0x30, 0x01, 0x23},
+				Opcode:         opcode.Ldc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.RegisterIndirectWithDisplacement,
+			},
+			expectedOperandType: operand.AI16R32_CCR,
+			expectedRegSrc:      []byte{0x03},
+			expectedString:      "ldc.w @(0x0123:16,er3), exr",
+			expectedImm:         []byte{0x01, 0x23},
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x41, 0x78, 0x30, 0x6B, 0x20, 0x12, 0x34, 0x56, 0x78},
+				Opcode:         opcode.Ldc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.RegisterIndirectWithDisplacement,
+			},
+			expectedOperandType: operand.AI32R32_CCR,
+			expectedRegSrc:      []byte{0x03},
+			expectedString:      "ldc.w @(0x12345678:32,er3), exr",
+			expectedImm:         []byte{0x12, 0x34, 0x56, 0x78},
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6E, 0x72, 0xFF, 0xFF},
+				Opcode:         opcode.Mov,
+				BWL:            size.Byte,
+				AddressingMode: addressingmode.RegisterIndirectWithDisplacement,
+			},
+			expectedOperandType: operand.AI16R32_R8,
+			expectedRegSrc:      []byte{0x07},
+			expectedRegDst:      []byte{0x02},
+			expectedString:      "mov.b @(0xFFFF:16,sp), r2h",
+			expectedImm:         []byte{0xFF, 0xFF},
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x78, 0x70, 0x6A, 0x2B, 0x00, 0xFF, 0xFF, 0x9D},
+				Opcode:         opcode.Mov,
+				BWL:            size.Byte,
+				AddressingMode: addressingmode.RegisterIndirectWithDisplacement,
+			},
+			expectedOperandType: operand.AI32R32_R8,
+			expectedRegSrc:      []byte{0x07},
+			expectedRegDst:      []byte{0x0B},
+			expectedString:      "mov.b @(0x00FFFF9D:32,sp), r3l",
+			expectedImm:         []byte{0x00, 0xFF, 0xFF, 0x9D},
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6F, 0x1A, 0x00, 0xFF},
+				Opcode:         opcode.Mov,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.RegisterIndirectWithDisplacement,
+			},
+			expectedOperandType: operand.AI16R32_R16,
+			expectedRegSrc:      []byte{0x01},
+			expectedRegDst:      []byte{0x0A},
+			expectedString:      "mov.w @(0x00FF:16,er1), e2",
+			expectedImm:         []byte{0x00, 0xFF},
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x78, 0x20, 0x6B, 0x25, 0x00, 0x01, 0x38, 0x80},
+				Opcode:         opcode.Mov,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.RegisterIndirectWithDisplacement,
+			},
+			expectedOperandType: operand.AI32R32_R16,
+			expectedRegSrc:      []byte{0x02},
+			expectedRegDst:      []byte{0x05},
+			expectedString:      "mov.w @(0x00013880:32,er2), r5",
+			expectedImm:         []byte{0x00, 0x01, 0x38, 0x80},
+		},
+		//
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x00, 0x6F, 0x74, 0x00, 0x3E},
+				Opcode:         opcode.Mov,
+				BWL:            size.Longword,
+				AddressingMode: addressingmode.RegisterIndirectWithDisplacement,
+			},
+			expectedOperandType: operand.AI16R32_R32,
+			expectedRegSrc:      []byte{0x07},
+			expectedRegDst:      []byte{0x04},
+			expectedString:      "mov.l @(0x003E:16,sp), er4",
+			expectedImm:         []byte{0x00, 0x3E},
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x00, 0x78, 0x70, 0x6B, 0x23, 0x00, 0x00, 0x27, 0x0E},
+				Opcode:         opcode.Mov,
+				BWL:            size.Longword,
+				AddressingMode: addressingmode.RegisterIndirectWithDisplacement,
+			},
+			expectedOperandType: operand.AI32R32_R32,
+			expectedRegSrc:      []byte{0x07},
+			expectedRegDst:      []byte{0x03},
+			expectedString:      "mov.l @(0x0000270E:32,sp), er3",
+			expectedImm:         []byte{0x00, 0x00, 0x27, 0x0E},
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6E, 0xC8, 0x82, 0xFB},
+				Opcode:         opcode.Mov,
+				BWL:            size.Byte,
+				AddressingMode: addressingmode.RegisterIndirectWithDisplacement,
+			},
+			expectedOperandType: operand.R8_AI16R32,
+			expectedRegSrc:      []byte{0x08},
+			expectedRegDst:      []byte{0x0C},
+			expectedString:      "mov.b r0l, @(0x82FB:16,er4)",
+			expectedImm:         []byte{0x82, 0xFB},
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x78, 0x50, 0x6A, 0xA9, 0x00, 0xFE, 0x79, 0x61},
+				Opcode:         opcode.Mov,
+				BWL:            size.Byte,
+				AddressingMode: addressingmode.RegisterIndirectWithDisplacement,
+			},
+			expectedOperandType: operand.R8_AI32R32,
+			expectedRegSrc:      []byte{0x09},
+			expectedRegDst:      []byte{0x05},
+			expectedString:      "mov.b r1l, @(0x00FE7961:32,er5)",
+			expectedImm:         []byte{0x00, 0xFE, 0x79, 0x61},
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x6F, 0xF2, 0x01, 0x01},
+				Opcode:         opcode.Mov,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.RegisterIndirectWithDisplacement,
+			},
+			expectedOperandType: operand.R16_AI16R32,
+			expectedRegSrc:      []byte{0x02},
+			expectedRegDst:      []byte{0x0F},
+			expectedString:      "mov.w r2, @(0x0101:16,sp)",
+			expectedImm:         []byte{0x01, 0x01},
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x78, 0x60, 0x6B, 0xAD, 0x00, 0x00, 0x27, 0x10},
+				Opcode:         opcode.Mov,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.RegisterIndirectWithDisplacement,
+			},
+			expectedOperandType: operand.R16_AI32R32,
+			expectedRegSrc:      []byte{0x0D},
+			expectedRegDst:      []byte{0x06},
+			expectedString:      "mov.w e5, @(0x00002710:32,er6)",
+			expectedImm:         []byte{0x00, 0x00, 0x27, 0x10},
+		},
+		//
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x00, 0x6F, 0xF4, 0x00, 0x22},
+				Opcode:         opcode.Mov,
+				BWL:            size.Longword,
+				AddressingMode: addressingmode.RegisterIndirectWithDisplacement,
+			},
+			expectedOperandType: operand.R32_AI16R32,
+			expectedRegSrc:      []byte{0x04},
+			expectedRegDst:      []byte{0x0F},
+			expectedString:      "mov.l er4, @(0x0022:16,sp)",
+			expectedImm:         []byte{0x00, 0x22},
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x00, 0x78, 0x00, 0x6B, 0xA5, 0x00, 0x00, 0x30, 0x0C},
+				Opcode:         opcode.Mov,
+				BWL:            size.Longword,
+				AddressingMode: addressingmode.RegisterIndirectWithDisplacement,
+			},
+			expectedOperandType: operand.R32_AI32R32,
+			expectedRegSrc:      []byte{0x05},
+			expectedRegDst:      []byte{0x00},
+			expectedString:      "mov.l er5, @(0x0000300C:32,er0)",
+			expectedImm:         []byte{0x00, 0x00, 0x30, 0x0C},
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x40, 0x6F, 0xF0, 0x00, 0x10},
+				Opcode:         opcode.Stc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.RegisterIndirectWithDisplacement,
+			},
+			expectedOperandType: operand.CCR_AI16R32,
+			expectedRegDst:      []byte{0x0F},
+			expectedString:      "stc.w ccr, @(0x0010:16,sp)",
+			expectedImm:         []byte{0x00, 0x10},
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x40, 0x78, 0x70, 0x6B, 0xA0, 0x00, 0x00, 0x00, 0x64},
+				Opcode:         opcode.Stc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.RegisterIndirectWithDisplacement,
+			},
+			expectedOperandType: operand.CCR_AI32R32,
+			expectedRegDst:      []byte{0x07},
+			expectedString:      "stc.w ccr, @(0x00000064:32,sp)",
+			expectedImm:         []byte{0x00, 0x00, 0x00, 0x64},
+		},
+		//
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x41, 0x6F, 0xF0, 0x00, 0x10},
+				Opcode:         opcode.Stc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.RegisterIndirectWithDisplacement,
+			},
+			expectedOperandType: operand.CCR_AI16R32,
+			expectedRegDst:      []byte{0x0F},
+			expectedString:      "stc.w exr, @(0x0010:16,sp)",
+			expectedImm:         []byte{0x00, 0x10},
+		},
+		{
+			instruction: instruction.Inst{
+				Bytes:          []byte{0x01, 0x41, 0x78, 0x70, 0x6B, 0xA0, 0x00, 0x00, 0x00, 0x64},
+				Opcode:         opcode.Stc,
+				BWL:            size.Word,
+				AddressingMode: addressingmode.RegisterIndirectWithDisplacement,
+			},
+			expectedOperandType: operand.CCR_AI32R32,
+			expectedRegDst:      []byte{0x07},
+			expectedString:      "stc.w exr, @(0x00000064:32,sp)",
+			expectedImm:         []byte{0x00, 0x00, 0x00, 0x64},
+		},
+	}
+	for _, tc := range testCases {
+		tc.instruction.DetermineOperandTypeAndSetData()
+		assert.Equal(t, tc.expectedOperandType, tc.instruction.OperandType, "expected operand type to be %s, got %s", tc.expectedOperandType, tc.instruction.OperandType)
+		assert.Equal(t, tc.expectedImm, tc.instruction.Imm, "expected Imm %v, got %v", tc.expectedImm, tc.instruction.Imm)
+		assert.Equal(t, tc.expectedRegSrc, tc.instruction.RegSrc, "expected RegSrc %v, got %v", tc.expectedRegSrc, tc.instruction.RegSrc)
+		assert.Equal(t, tc.expectedRegDst, tc.instruction.RegDst, "expected RegDst %v, got %v", tc.expectedRegDst, tc.instruction.RegDst)
+		assert.Equal(t, tc.expectedString, tc.instruction.String())
+	}
+}

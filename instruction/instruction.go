@@ -528,13 +528,140 @@ func (i *Inst) DetermineOperandTypeAndSetData() {
 			i.OperandType = operand.O16
 			i.Imm = []byte{i.Bytes[2], i.Bytes[3]}
 		}
+	case addressingmode.MemoryIndirect:
+		i.OperandType = operand.AI8
+		i.Imm = []byte{i.Bytes[1]}
+	case addressingmode.RegisterIndirectWithDisplacement:
+		switch i.Opcode {
+		case opcode.Ldc:
+			switch len(i.Bytes) {
+			case 6:
+				i.OperandType = operand.AI16R32_CCR
+				i.Imm = []byte{i.Bytes[4], i.Bytes[5]}
+				i.RegSrc = []byte{i.Bytes[3] >> 4}
+			case 10:
+				i.OperandType = operand.AI32R32_CCR
+				i.Imm = []byte{i.Bytes[6], i.Bytes[7], i.Bytes[8], i.Bytes[9]}
+				i.RegSrc = []byte{i.Bytes[3] >> 4}
+			}
+		case opcode.Stc:
+			switch len(i.Bytes) {
+			case 6:
+				i.OperandType = operand.CCR_AI16R32
+				i.Imm = []byte{i.Bytes[4], i.Bytes[5]}
+				i.RegDst = []byte{i.Bytes[3] >> 4}
+			case 10:
+				i.OperandType = operand.CCR_AI32R32
+				i.Imm = []byte{i.Bytes[6], i.Bytes[7], i.Bytes[8], i.Bytes[9]}
+				i.RegDst = []byte{i.Bytes[3] >> 4}
+			}
+		case opcode.Mov:
+			switch i.BWL {
+			case size.Byte:
+				switch len(i.Bytes) {
+				case 4:
+					if i.Bytes[1]>>4 < 8 {
+						i.OperandType = operand.AI16R32_R8
+						i.RegSrc = []byte{i.Bytes[1] >> 4}
+						i.RegDst = []byte{i.Bytes[1] & 0x0F}
+						i.Imm = []byte{i.Bytes[2], i.Bytes[3]}
+					} else {
+						i.OperandType = operand.R8_AI16R32
+						i.RegDst = []byte{i.Bytes[1] >> 4}
+						i.RegSrc = []byte{i.Bytes[1] & 0x0F}
+						i.Imm = []byte{i.Bytes[2], i.Bytes[3]}
+					}
+				case 8:
+					if i.Bytes[3]>>4 != 0x0A {
+						i.OperandType = operand.AI32R32_R8
+						i.RegSrc = []byte{i.Bytes[1] >> 4}
+						i.RegDst = []byte{i.Bytes[3] & 0x0F}
+						i.Imm = []byte{i.Bytes[4], i.Bytes[5], i.Bytes[6], i.Bytes[7]}
+					} else {
+						i.OperandType = operand.R8_AI32R32
+						i.RegDst = []byte{i.Bytes[1] >> 4}
+						i.RegSrc = []byte{i.Bytes[3] & 0x0F}
+						i.Imm = []byte{i.Bytes[4], i.Bytes[5], i.Bytes[6], i.Bytes[7]}
+					}
+				}
+			case size.Word:
+				switch len(i.Bytes) {
+				case 4:
+					if i.Bytes[1]>>4 != 0x0F {
+						i.OperandType = operand.AI16R32_R16
+						i.RegSrc = []byte{i.Bytes[1] >> 4}
+						i.RegDst = []byte{i.Bytes[1] & 0x0F}
+						i.Imm = []byte{i.Bytes[2], i.Bytes[3]}
+					} else {
+						i.OperandType = operand.R16_AI16R32
+						i.RegDst = []byte{i.Bytes[1] >> 4}
+						i.RegSrc = []byte{i.Bytes[1] & 0x0F}
+						i.Imm = []byte{i.Bytes[2], i.Bytes[3]}
+					}
+				case 8:
+					if i.Bytes[3]>>4 != 0x0A {
+						i.OperandType = operand.AI32R32_R16
+						i.RegSrc = []byte{i.Bytes[1] >> 4}
+						i.RegDst = []byte{i.Bytes[3] & 0x0F}
+						i.Imm = []byte{i.Bytes[4], i.Bytes[5], i.Bytes[6], i.Bytes[7]}
+					} else {
+						i.OperandType = operand.R16_AI32R32
+						i.RegDst = []byte{i.Bytes[1] >> 4}
+						i.RegSrc = []byte{i.Bytes[3] & 0x0F}
+						i.Imm = []byte{i.Bytes[4], i.Bytes[5], i.Bytes[6], i.Bytes[7]}
+					}
+				}
+			case size.Longword:
+				switch len(i.Bytes) {
+				case 6:
+					if i.Bytes[3]>>4 < 8 {
+						i.OperandType = operand.AI16R32_R32
+						i.RegSrc = []byte{i.Bytes[3] >> 4}
+						i.RegDst = []byte{i.Bytes[3] & 0x0F}
+						i.Imm = []byte{i.Bytes[4], i.Bytes[5]}
+					} else {
+						i.OperandType = operand.R32_AI16R32
+						i.RegDst = []byte{i.Bytes[3] >> 4}
+						i.RegSrc = []byte{i.Bytes[3] & 0x0F}
+						i.Imm = []byte{i.Bytes[4], i.Bytes[5]}
+					}
+				case 10:
+					if i.Bytes[5]>>4 != 0x0A {
+						i.OperandType = operand.AI32R32_R32
+						i.RegSrc = []byte{i.Bytes[3] >> 4}
+						i.RegDst = []byte{i.Bytes[5] & 0x0F}
+						i.Imm = []byte{i.Bytes[6], i.Bytes[7], i.Bytes[8], i.Bytes[9]}
+					} else {
+						i.OperandType = operand.R32_AI32R32
+						i.RegDst = []byte{i.Bytes[3] >> 4}
+						i.RegSrc = []byte{i.Bytes[5] & 0x0F}
+						i.Imm = []byte{i.Bytes[6], i.Bytes[7], i.Bytes[8], i.Bytes[9]}
+					}
+				}
+			}
+		}
 
-		// case addressingmode.MemoryIndirect:
-		// 	panic("MemoryIndirect not implemented")
-		// case addressingmode.RegisterIndirectWithDisplacement:
-		// 	panic("RegisterIndirectWithDisplacement not implemented")
-		// case addressingmode.RegisterIndirectWithPostIncrement:
-		// 	panic("RegisterIndirectWithPostIncrement not implemented")
+	case addressingmode.RegisterIndirectWithPostIncrement:
+		switch i.BWL {
+		case size.Byte:
+		case size.Word:
+		case size.Unset:
+		}
+		switch i.Opcode {
+		case opcode.Ldc:
+			if i.Bytes[1]&0x0F != 1 {
+				i.OperandType = operand.AR32I_CCR
+				i.RegSrc = []byte{i.Bytes[3] >> 4}
+			} else {
+				i.OperandType = operand.AR32I_EXR
+				i.RegSrc = []byte{i.Bytes[3] >> 4}
+			}
+		case opcode.Mac:
+			i.OperandType = operand.AR32I_AR32I
+			i.RegSrc = []byte{i.Bytes[3] >> 4}
+			i.RegDst = []byte{i.Bytes[3] & 0x0F}
+
+		}
 		// case addressingmode.RegisterIndirectWithPreDecrement:
 		// 	panic("RegisterIndirectWithPreDecrement not implemented")
 	}
@@ -725,6 +852,64 @@ func (i *Inst) String() string {
 		out := i.Pos + len(i.Bytes) + int(offset)
 		// Then convert to hex
 		build = fmt.Sprintf("0x%08X:16", out)
+	case operand.AI8:
+		build = fmt.Sprintf("@@%s:8", toImm(i.Imm[0]))
+	case operand.AI16R32_CCR:
+		if i.Bytes[1]&0x0F == 0 {
+			build = fmt.Sprintf("@(%s:16,%s), ccr", toImmWord(i.Imm), toRegister(i.RegSrc[0], size.Longword))
+		} else {
+			build = fmt.Sprintf("@(%s:16,%s), exr", toImmWord(i.Imm), toRegister(i.RegSrc[0], size.Longword))
+
+		}
+	case operand.AI32R32_CCR:
+		if i.Bytes[1]&0x0F == 0 {
+			build = fmt.Sprintf("@(%s:32,%s), ccr", toImmLongWord(i.Imm), toRegister(i.RegSrc[0], size.Longword))
+		} else {
+			build = fmt.Sprintf("@(%s:32,%s), exr", toImmLongWord(i.Imm), toRegister(i.RegSrc[0], size.Longword))
+		}
+	case operand.AI16R32_R8:
+		build = fmt.Sprintf("@(%s:16,%s), %s", toImmWord(i.Imm), toRegister(i.RegSrc[0], size.Longword), toRegister(i.RegDst[0], size.Byte))
+	case operand.AI32R32_R8:
+		build = fmt.Sprintf("@(%s:32,%s), %s", toImmLongWord(i.Imm), toRegister(i.RegSrc[0], size.Longword), toRegister(i.RegDst[0], size.Byte))
+	case operand.AI16R32_R16:
+		build = fmt.Sprintf("@(%s:16,%s), %s", toImmWord(i.Imm), toRegister(i.RegSrc[0], size.Longword), toRegister(i.RegDst[0], size.Word))
+	case operand.AI32R32_R16:
+		build = fmt.Sprintf("@(%s:32,%s), %s", toImmLongWord(i.Imm), toRegister(i.RegSrc[0], size.Longword), toRegister(i.RegDst[0], size.Word))
+	case operand.AI16R32_R32:
+		build = fmt.Sprintf("@(%s:16,%s), %s", toImmWord(i.Imm), toRegister(i.RegSrc[0], size.Longword), toRegister(i.RegDst[0], size.Longword))
+	case operand.AI32R32_R32:
+		build = fmt.Sprintf("@(%s:32,%s), %s", toImmLongWord(i.Imm), toRegister(i.RegSrc[0], size.Longword), toRegister(i.RegDst[0], size.Longword))
+	case operand.R8_AI16R32:
+		build = fmt.Sprintf("%s, @(%s:16,%s)", toRegister(i.RegSrc[0], size.Byte), toImmWord(i.Imm), toShiftedRegister(i.RegDst[0], size.Longword))
+	case operand.R8_AI32R32:
+		build = fmt.Sprintf("%s, @(%s:32,%s)", toRegister(i.RegSrc[0], size.Byte), toImmLongWord(i.Imm), toRegister(i.RegDst[0], size.Longword))
+	case operand.R16_AI16R32:
+		build = fmt.Sprintf("%s, @(%s:16,%s)", toRegister(i.RegSrc[0], size.Word), toImmWord(i.Imm), toShiftedRegister(i.RegDst[0], size.Longword))
+	case operand.R16_AI32R32:
+		build = fmt.Sprintf("%s, @(%s:32,%s)", toRegister(i.RegSrc[0], size.Word), toImmLongWord(i.Imm), toRegister(i.RegDst[0], size.Longword))
+	case operand.R32_AI16R32:
+		build = fmt.Sprintf("%s, @(%s:16,%s)", toRegister(i.RegSrc[0], size.Longword), toImmWord(i.Imm), toRegister(i.RegDst[0], size.Longword))
+	case operand.R32_AI32R32:
+		build = fmt.Sprintf("%s, @(%s:32,%s)", toRegister(i.RegSrc[0], size.Longword), toImmLongWord(i.Imm), toRegister(i.RegDst[0], size.Longword))
+	case operand.CCR_AI16R32:
+		if i.Bytes[1]&0x0F == 0 {
+			build = fmt.Sprintf("ccr, @(%s:16,%s)", toImmWord(i.Imm), toRegister(i.RegDst[0], size.Longword))
+		} else {
+			build = fmt.Sprintf("exr, @(%s:16,%s)", toImmWord(i.Imm), toRegister(i.RegDst[0], size.Longword))
+
+		}
+	case operand.CCR_AI32R32:
+		if i.Bytes[1]&0x0F == 0 {
+			build = fmt.Sprintf("ccr, @(%s:32,%s)", toImmLongWord(i.Imm), toRegister(i.RegDst[0], size.Longword))
+		} else {
+			build = fmt.Sprintf("exr, @(%s:32,%s)", toImmLongWord(i.Imm), toRegister(i.RegDst[0], size.Longword))
+		}
+	case operand.AR32I_CCR:
+		build = fmt.Sprintf("@%s+, ccr", toRegister(i.RegSrc[0], size.Longword))
+	case operand.AR32I_EXR:
+		build = fmt.Sprintf("@%s+, exr", toRegister(i.RegSrc[0], size.Longword))
+	case operand.AR32I_AR32I:
+		build = fmt.Sprintf("@%s+, @%s+", toRegister(i.RegSrc[0], size.Longword), toRegister(i.RegDst[0], size.Longword))
 	case operand.None:
 		build = ""
 	}
